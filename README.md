@@ -1,41 +1,55 @@
 # Kivo Backend
 
-Backend for indoor navigation in large retail spaces. The service will expose a JSON REST API for
-kiosks built with Intuiface and provide route sharing for mobile devices.
+Бэкенд системы навигации внутри крупных торговых пространств. Сервис предоставляет JSON REST API
+для киосков на Intuiface, строит маршруты по этажам и позволяет передавать маршрут на телефон с
+помощью QR-кода.
 
-## Technology baseline
+## Технологический стек
 
-- Java 25
-- Spring Boot 4.1
-- Gradle with Kotlin DSL
-- PostgreSQL and Flyway
-- Spring Data JPA
-- JUnit 5; integration tests will use Testcontainers
-- Spotless with google-java-format
+- Java 25;
+- Spring Boot 4.1;
+- Gradle с Kotlin DSL и Java toolchain;
+- PostgreSQL и Flyway;
+- Spring Data JPA;
+- JUnit 5 и Testcontainers для интеграционных тестов;
+- Spotless с google-java-format.
 
-The application is a modular monolith. Domain modules stay inside one deployable service while
-keeping navigation, catalog, maps, events, sharing, feedback, and administration isolated in code.
+Приложение разрабатывается как модульный монолит. Каталог, карты, киоски, навигация, события,
+передача маршрута и отзывы остаются частями одного развёртываемого сервиса, но изолируются друг от
+друга на уровне пакетов и контрактов.
 
-## Local development
+## Локальный запуск
 
-Prerequisites: JDK 25 and Docker Desktop.
+Для запуска необходимы Docker Desktop и JDK 17 или новее. Требуемую для компиляции Java 25 Gradle
+toolchain загрузит автоматически.
 
 ```powershell
 docker compose up -d
 .\gradlew.bat bootRun
 ```
 
-The local database defaults are defined in `compose.yaml`. Override them with `DB_URL`,
-`DB_USERNAME`, and `DB_PASSWORD` outside local development.
+Локальные параметры PostgreSQL определены в `compose.yaml`. В других окружениях их нужно задавать
+через переменные `DB_URL`, `DB_USERNAME` и `DB_PASSWORD`.
 
-Run the test suite:
+## Проверки
 
 ```powershell
-.\gradlew.bat test
+.\gradlew.bat spotlessCheck test
 ```
 
-## Project plan
+## Документация
 
-The living implementation plan and architectural decisions are in
-[`docs/plans/20260809-kivo-backend.md`](docs/plans/20260809-kivo-backend.md). It must be updated as
-tasks are completed or the scope changes.
+Живой план реализации и архитектурные решения находятся в
+[`docs/plans/20260809-kivo-backend.md`](docs/plans/20260809-kivo-backend.md). План обновляется после
+каждой завершённой задачи или изменения объёма работ.
+
+## Работа с Git
+
+- новые возможности: `feature/<название>`;
+- срочные исправления: `hotfix/<название>`;
+- исправления: `fix/<название>`;
+- документация: `docs/<название>`;
+- технические изменения: `chore/<название>`.
+
+Каждая ветка создаётся от актуального `main`. После прохождения тестов и форматирования однозначные
+изменения можно слить в `main` самостоятельно; спорные решения отправляются отдельным pull request.

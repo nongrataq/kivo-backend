@@ -1,401 +1,296 @@
-# Kivo Backend — Full Implementation Plan
+# Kivo Backend — полный план реализации
 
-## Overview
+## Цель
 
-Kivo is a backend for indoor navigation in large shopping centres and other retail spaces. A visitor
-uses a fixed kiosk, searches for a destination, receives the fastest valid walking route, and may
-transfer that route to a phone through a QR code.
+Kivo — бэкенд для навигации внутри крупных торговых центров и других торговых пространств.
+Посетитель подходит к стационарному киоску, находит нужное место, получает кратчайший допустимый
+маршрут и при желании переносит его на телефон через QR-код.
 
-The first delivery target is a complete, tested backend with a stable JSON API. Integration with
-Ariadna's Figma/Intuiface frontend follows after the backend contract and functionality are ready.
+Первый результат — полностью протестированный бэкенд со стабильным JSON API. Интеграция с макетом
+Ариадны в Figma и интерфейсом Intuiface выполняется после стабилизации серверного контракта.
 
-## Agreed Decisions
+## Принятые решения
 
-- Java 25 and Spring Boot 4.1.
-- Gradle with Kotlin DSL and Gradle Wrapper.
-- Gradle toolchains automatically provision Java 25 when it is not installed locally.
-- Spotless with google-java-format enforces Java formatting in local builds and CI.
-- Modular monolith; no microservices for the initial product.
-- PostgreSQL with versioned Flyway migrations.
-- Spring Data JPA for persistence; JPA entities never leave the persistence boundary.
-- Contract-first REST API documented with OpenAPI.
-- Ordinary development flow: implementation and its tests are completed in the same task.
-- Every production code change requires success and error/edge-case tests.
-- The repository remains deployable after every completed task; failing tests block further work.
-- `main` is the stable branch. Feature work uses short-lived `codex/*` branches and pull requests
-  once regular development begins.
+- Java 25 и Spring Boot 4.1.
+- Gradle с Kotlin DSL и Gradle Wrapper.
+- Gradle toolchain автоматически предоставляет Java 25.
+- Модульный монолит; микросервисы на первом этапе не используются.
+- PostgreSQL и версионированные миграции Flyway.
+- Spring Data JPA; persistence-сущности не покидают инфраструктурный слой.
+- REST API описывается через OpenAPI.
+- Реализация и тесты входят в одну задачу и один коммит/набор коммитов фичи.
+- Все тесты должны проходить перед переходом к следующей задаче.
+- `main` всегда остаётся рабочей веткой.
+- Каждая фича создаётся от `main` в отдельной ветке `feature/*`; документация — `docs/*`,
+  исправления — `fix/*`, срочные исправления — `hotfix/*`, технические задачи — `chore/*`.
 
-## System Context
+## Архитектурный контекст
 
 ```text
-Intuiface kiosk ──HTTPS/JSON──> Kivo Spring Boot API ──> PostgreSQL
+Intuiface-киоск ──HTTPS/JSON──> Kivo Spring Boot API ──> PostgreSQL
                                       │
-                                      ├──> in-memory navigation graph
-                                      ├──> route overlay renderer
-                                      └──> expiring mobile route page <── QR/phone
+                                      ├──> навигационный граф в памяти
+                                      ├──> генератор слоёв маршрута
+                                      └──> временный мобильный маршрут <── QR/телефон
 ```
 
-The visual floor plan and the navigation topology are separate:
+Визуальный план и навигационная топология разделены:
 
-- Intuiface owns presentation and displays floor artwork.
-- The backend owns routable nodes, edges, restrictions, distances, floor transitions, and POI links.
-- Coordinates use a resolution-independent `0..10000` system with origin at the top-left.
-- The backend returns route metadata and per-floor overlay URLs, so Intuiface does not need to draw
-  arbitrary polylines itself.
+- Intuiface отвечает за представление и отображение планов этажей.
+- Бэкенд отвечает за узлы, рёбра, ограничения, расстояния, переходы между этажами и привязку мест.
+- Координаты хранятся в независимом от разрешения диапазоне `0..10000`, начало — левый верхний угол.
+- Бэкенд возвращает сведения о маршруте и URL прозрачного SVG-слоя для каждого этажа.
 
-## Target Modules
+## Модули
 
-All modules live below `com.kivo.backend` and expose dependencies through application services:
+- `catalog` — ТЦ, категории, места, локализованный контент и поиск.
+- `maps` — этажи, параметры планов, координаты и отрисовка маршрута.
+- `kiosks` — идентификация киоска, конфигурация и стартовая точка.
+- `navigation` — граф, загрузка снимков, профили движения, A*/Dijkstra и инструкции.
+- `events` — события и их связь с местами.
+- `sharing` — временные токены, QR-коды и мобильное представление маршрута.
+- `feedback` — анонимная оценка полезности.
+- `admin` — защищённая загрузка и публикация данных.
+- `common` — ошибки API, валидация, локализация, идентификаторы и конфигурация.
 
-- `catalog`: malls, categories, places, localized content, and search.
-- `maps`: floors, map metadata, coordinate conversion, and route overlays.
-- `kiosks`: kiosk identity, configuration, and fixed starting positions.
-- `navigation`: graph model, graph loading, route policies, A*/Dijkstra, and instructions.
-- `events`: current and upcoming events linked to places.
-- `sharing`: opaque expiring share tokens, QR images, and mobile route retrieval.
-- `feedback`: anonymous usefulness feedback and operational metadata.
-- `admin`: protected data import and maintenance capabilities added after the public API is stable.
-- `common`: API errors, validation, localization, time, identifiers, and configuration.
+Модуль не обращается напрямую к репозиториям другого модуля. Взаимодействие выполняется через
+application service или явно объявленный read-port.
 
-Modules must not access another module's repositories directly. Cross-module behaviour goes through
-an application service or an explicitly defined read port.
+## Модель данных
 
-## Domain and Persistence
+- `Mall` — код ТЦ, название, часовой пояс, язык по умолчанию, активная версия графа.
+- `Floor` — ТЦ, код этажа, порядок отображения, URL карты, размер координатной системы и масштаб.
+- `Kiosk` — публичный код, ТЦ, этаж, стартовый узел, активность.
+- `Category` и переводы — категории мест и локализованные названия.
+- `Place` и переводы — место, категория, этаж, ближайший узел графа и поисковые данные.
+- `NavigationNode` — этаж, координаты и назначение точки.
+- `NavigationEdge` — направленные концы, длина, геометрия, тип перемещения и ограничения.
+- `Event` — локализованный контент, время, место и состояние публикации.
+- `SharedRoute` — хеш временного токена, маршрут/снимок маршрута и срок действия.
+- `Feedback` — контекст маршрута/киоска, оценка и время без персональных данных.
 
-Planned persisted concepts:
+Граф загружается из PostgreSQL в неизменяемый снимок в памяти для каждой пары ТЦ/версии. Публикация
+нового графа атомарно заменяет активный снимок.
 
-- `Mall`: stable code, name, timezone, active graph version.
-- `Floor`: mall, floor code, display order, map URL, coordinate width/height, real-world scale.
-- `Kiosk`: public code, mall, floor, entry navigation node, enabled flag.
-- `Category` and translations: localized searchable category names.
-- `Place` and translations: POI metadata, category, floor, nearest navigation node.
-- `NavigationNode`: floor and normalized coordinates; may represent a turn, entrance, or connector.
-- `NavigationEdge`: directed endpoints, length, geometry, traversal type, accessibility, state.
-- `Event`: localized content, time interval, place, publication state.
-- `SharedRoute`: opaque token hash, route snapshot/reference, expiration.
-- `Feedback`: route/kiosk context, useful flag, timestamp; no personal data.
+> Перед изменением JPA-сущностей и репозиториев обязательно применять навык `spring-data-jpa` и
+> добавлять миграцию Flyway в ту же задачу.
 
-The routing graph is loaded from PostgreSQL into an immutable in-memory snapshot per mall and graph
-version. PostgreSQL remains the source of truth. A publish/reload operation atomically replaces the
-active snapshot so route requests never see a half-updated graph.
+## Правила JPA
 
-> **JPA skill required (`spring-data-jpa`).** Before writing entity or repository code, activate the
-> skill, inspect established conventions, and keep schema changes in the same task as their Flyway
-> migration. Any deviation requires developer confirmation.
+- UUID и `GenerationType.UUID` для технических идентификаторов.
+- Явные имена таблиц, колонок, индексов, ограничений и join-колонок в `lower_snake_case`.
+- Аннотации размещаются на приватных полях.
+- `ManyToOne` и `OneToOne` по умолчанию `LAZY`; каскад для ссылок на существующие сущности запрещён.
+- Lombok в сущностях не используется.
+- `equals/hashCode` реализуются вручную, безопасно для Hibernate proxy, по ненулевому ID.
+- В `toString` запрещены поля-связи.
+- Bean Validation и ограничения БД дополняют друг друга.
+- Контроллеры работают только с DTO, а не с JPA-сущностями.
 
-## Routing Engine
+## Движок маршрутов
 
-The routing engine is pure Java and does not depend on Spring or JPA. This keeps its behaviour fast,
-deterministic, and exhaustively testable.
-
-Route cost is time-oriented rather than straight-line distance:
+Движок — чистый Java без зависимостей от Spring и JPA. Стоимость маршрута ориентирована на время:
 
 ```text
-edge cost = distance / walking speed + traversal penalty + dynamic restriction
+стоимость ребра = расстояние / скорость + штраф типа перехода + динамическое ограничение
 ```
 
-- Corridor edges use walking time.
-- Stairs, escalators, and elevators apply configurable penalties.
-- Closed edges are excluded.
-- Accessible routing excludes stairs and other incompatible edges.
-- A* is the default algorithm with an admissible geometric heuristic.
-- Dijkstra remains a reference implementation for correctness tests and cases with no safe heuristic.
-- A route across floors contains explicit transition steps and a separate overlay per floor.
-- An unreachable destination returns a typed `ROUTE_NOT_FOUND` response, never an empty success.
+- коридоры используют расчёт времени ходьбы;
+- лестницы, эскалаторы и лифты имеют настраиваемые штрафы;
+- закрытые рёбра исключаются;
+- доступный профиль исключает неподходящие переходы;
+- основной алгоритм — A* с допустимой эвристикой;
+- Dijkstra остаётся эталоном корректности;
+- межэтажный маршрут содержит явные переходы и отдельный слой каждого этажа;
+- недоступный пункт возвращает ошибку `ROUTE_NOT_FOUND`.
 
-Graph validation must reject missing endpoints, negative lengths, invalid floor connectors,
-unreachable public places, duplicate external IDs, and coordinates outside floor bounds.
+Валидация графа проверяет концы рёбер, отрицательные длины, межэтажные переходы, достижимость
+публичных мест, дубликаты внешних кодов и границы координат.
 
-## Initial REST Contract
-
-Public kiosk API under `/api/v1`:
+## Начальный REST API
 
 ```text
-GET  /kiosks/{kioskCode}/bootstrap
-GET  /malls/{mallCode}/categories
-GET  /malls/{mallCode}/places?q=&categoryId=&lang=
-GET  /places/{placeId}?lang=
-POST /routes
-GET  /routes/{routeId}
-GET  /routes/{routeId}/floors/{floorCode}/overlay.svg
-POST /routes/{routeId}/share
-GET  /public/routes/{shareToken}
-GET  /malls/{mallCode}/events/today?lang=
-POST /feedback
+GET  /api/v1/kiosks/{kioskCode}/bootstrap
+GET  /api/v1/malls/{mallCode}/categories
+GET  /api/v1/malls/{mallCode}/places?q=&categoryId=&lang=
+GET  /api/v1/places/{placeId}?lang=
+POST /api/v1/routes
+GET  /api/v1/routes/{routeId}
+GET  /api/v1/routes/{routeId}/floors/{floorCode}/overlay.svg
+POST /api/v1/routes/{routeId}/share
+GET  /api/v1/public/routes/{shareToken}
+GET  /api/v1/malls/{mallCode}/events/today?lang=
+POST /api/v1/feedback
 ```
 
-API rules:
-
-- camelCase JSON and ISO-8601 timestamps in UTC;
-- UUID/ULID-style opaque public identifiers rather than database sequence IDs;
-- explicit `lang` for simple Intuiface binding, with a documented fallback language;
-- Bean Validation at the HTTP boundary;
-- RFC 9457 Problem Details plus stable Kivo error codes;
-- bounded search result sizes and server-side filtering;
-- no nested arrays in Intuiface-facing responses;
-- no persistence entities in controllers, DTOs, or OpenAPI schemas;
-- additive changes inside `v1`; breaking changes require a new API version.
-
-## Security and Privacy
-
-- Public read data contains no secrets or personal information.
-- Administrative endpoints are isolated from kiosk endpoints and require authentication.
-- Kiosk credentials, if introduced, are revocable and supplied through deployment configuration.
-- QR links contain a high-entropy opaque token, expire automatically, and reveal no database IDs.
-- Feedback is anonymous; IP addresses are not domain data.
-- Secrets never enter Git. Local defaults are development-only and production uses environment or
-  platform-managed secrets.
-- Apply rate limits to route creation, search, sharing, and public share retrieval before deployment.
-
-## Testing Strategy
-
-- Unit tests: graph construction, A*/Dijkstra, cost policies, validation, mapping, and application
-  services. These must be fast and avoid Spring.
-- Slice tests: MVC validation/error contracts and JPA repository behaviour where appropriate.
-- Integration tests: Spring Boot + PostgreSQL Testcontainers + Flyway.
-- Architecture tests: enforce module boundaries and prevent controllers from exposing entities.
-- Contract tests: validate response examples against OpenAPI and Intuiface-friendly JSON constraints.
-- End-to-end backend scenarios: bootstrap → search → route → share → public retrieval → feedback.
-- Quality gates: compilation, all tests, migration validation, and static formatting on every push.
-
-No task is complete while relevant tests are failing. Test coverage is used as a diagnostic, not as a
-substitute for meaningful assertions; the routing engine receives the highest branch/edge-case focus.
+Правила API:
 
-## Progress Tracking
-
-- Mark completed checklist items with `[x]` immediately.
-- Add newly discovered work with `[+]` and blockers with `[!]`.
-- Update decisions and file lists when the implementation changes.
-- Complete each task, including tests, before beginning the next one.
-- Move this file to `docs/plans/completed/` only when the complete backend scope is delivered.
-
-## Implementation Steps
-
-### Task 1: Bootstrap the repository and build
-
-**Files:**
-
-- Create: `build.gradle.kts`, `settings.gradle.kts`, `gradle/wrapper/*`
-- Create: `src/main/java/com/kivo/backend/KivoBackendApplication.java`
-- Create: `src/main/resources/application.properties`, `compose.yaml`
-- Create: `src/test/**`, `README.md`, `.editorconfig`
-
-- [x] generate a Java 25 / Spring Boot 4.1 Gradle project
-- [x] configure PostgreSQL, Flyway, validation, JPA, Actuator, and MVC dependencies
-- [x] externalize database credentials and add a local PostgreSQL Compose service
-- [x] add an isolated H2 test profile for the initial context smoke test
-- [x] run the complete initial test suite
-- [x] create the initial Git commit and push synchronized `main` to GitHub
-
-### Task 2: Establish API and module foundations
-
-**Files:**
-
-- Create: `src/main/java/com/kivo/backend/common/**`
-- Create: `src/main/java/com/kivo/backend/*/package-info.java`
-- Create: `src/test/java/com/kivo/backend/architecture/**`
-- Create: `docs/api/openapi.yaml`
-
-- [ ] define package/module boundaries and dependency rules
-- [ ] introduce stable error codes and RFC 9457 error mapping
-- [ ] define API versioning, pagination, language, and identifier conventions in OpenAPI
-- [ ] add architecture tests for module and controller boundaries
-- [ ] add MVC tests for validation and representative error responses
-- [ ] run all tests before Task 3
-
-### Task 3: Create the mall catalog and map persistence model
-
-**Files:**
-
-- Create: `src/main/java/com/kivo/backend/catalog/**`
-- Create: `src/main/java/com/kivo/backend/maps/**`
-- Create: `src/main/java/com/kivo/backend/kiosks/**`
-- Create: `src/main/resources/db/migration/V1__create_core_catalog.sql`
-- Create: `src/test/java/com/kivo/backend/{catalog,maps,kiosks}/**`
+- JSON в `camelCase`, время — ISO-8601 UTC;
+- наружу выдаются непрозрачные UUID/ULID, а не последовательные ID БД;
+- язык задаётся параметром `lang`, предусмотрен fallback;
+- входные данные проверяются Bean Validation;
+- ошибки используют RFC 9457 Problem Details и стабильный код Kivo;
+- фильтрация выполняется на сервере, размеры выдачи ограничены;
+- в ответах для Intuiface нет вложенных массивов;
+- изменения внутри `v1` только обратно совместимые.
 
-> **JPA skill required (`spring-data-jpa`).** Activate it before entity/repository implementation.
-
-- [ ] model malls, floors, kiosks, categories, translations, and places
-- [ ] create explicit DTOs and application services; keep entities internal
-- [ ] add Flyway constraints and indexes with external IDs unique in their proper scope
-- [ ] implement seed/import fixtures for a small demo mall
-- [ ] test persistence constraints, mappings, localization fallback, and invalid data
-- [ ] run all tests before Task 4
-
-### Task 4: Implement catalog, search, and bootstrap APIs
-
-**Files:**
+## Безопасность
 
-- Create: `src/main/java/com/kivo/backend/catalog/api/**`
-- Create: `src/main/java/com/kivo/backend/kiosks/api/**`
-- Create: `src/test/java/com/kivo/backend/catalog/api/**`
-- Modify: `docs/api/openapi.yaml`
+- публичные данные не содержат секретов и персональной информации;
+- административные endpoints отделены и требуют аутентификации;
+- QR-ссылка содержит высокоэнтропийный непрозрачный токен с ограниченным сроком действия;
+- feedback анонимен;
+- production-секреты передаются через окружение/secret storage и не попадают в Git;
+- перед деплоем добавляется rate limiting для поиска, построения и передачи маршрутов.
 
-- [ ] implement kiosk bootstrap and place/category read models
-- [ ] implement normalized, bounded server-side search and category filtering
-- [ ] return localized flat DTOs suitable for Intuiface collections
-- [ ] test successful reads, empty results, invalid language, and missing resources
-- [ ] verify OpenAPI examples against serialized responses
-- [ ] run all tests before Task 5
+## Тестирование
+
+- unit-тесты: граф, A*/Dijkstra, стоимость, валидация, маппинг и application services;
+- slice-тесты: MVC-контракты и JPA-репозитории;
+- интеграционные тесты: Spring Boot, PostgreSQL Testcontainers и Flyway;
+- архитектурные тесты: границы модулей и запрет сущностей в контроллерах;
+- контрактные тесты: соответствие OpenAPI и ограничениям Intuiface;
+- end-to-end backend: bootstrap → поиск → маршрут → QR → получение → feedback.
 
-### Task 5: Persist and validate navigation graphs
+Покрытие используется как диагностический показатель, а не как замена содержательным проверкам.
+Наибольшее внимание уделяется ветвлениям и крайним случаям движка маршрутов.
+
+## Ведение прогресса
+
+- завершённые пункты сразу помечаются `[x]`;
+- новая обнаруженная работа получает префикс `[+]`, блокеры — `[!]`;
+- план обновляется при изменении решений или объёма;
+- следующая задача не начинается до прохождения тестов текущей;
+- в `docs/plans/completed/` план переносится только после полной готовности backend.
+
+## Этапы реализации
+
+### Задача 1. Создать репозиторий и сборку
 
-**Files:**
-
-- Create: `src/main/java/com/kivo/backend/navigation/graph/**`
-- Create: `src/main/java/com/kivo/backend/navigation/persistence/**`
-- Create: `src/main/resources/db/migration/V2__create_navigation_graph.sql`
-- Create: `src/test/java/com/kivo/backend/navigation/graph/**`
+**Файлы:** `build.gradle.kts`, `settings.gradle.kts`, `gradle/wrapper/*`, `compose.yaml`,
+`src/main/**`, `src/test/**`, `README.md`.
+
+- [x] создать проект Java 25 / Spring Boot 4.1 / Gradle;
+- [x] подключить PostgreSQL, Flyway, JPA, Validation, Actuator и MVC;
+- [x] вынести параметры БД в окружение и добавить PostgreSQL Compose;
+- [x] добавить тестовый H2-профиль;
+- [x] запустить начальный набор тестов;
+- [x] создать GitHub-репозиторий и синхронизировать `main`.
+
+### Задача 2. Заложить API и границы модулей
+
+**Файлы:** `common/**`, `*/package-info.java`, `architecture/**`, `docs/api/openapi.yaml`.
+
+- [ ] определить границы пакетов и правила зависимостей;
+- [ ] добавить коды ошибок и RFC 9457 mapping;
+- [ ] закрепить versioning, язык, пагинацию и ID в OpenAPI;
+- [ ] добавить архитектурные тесты;
+- [ ] протестировать валидацию и типовые ошибки MVC.
 
-> **JPA skill required (`spring-data-jpa`).** Activate it before entity/repository implementation.
-
-- [ ] create node, edge, connector, geometry, restriction, and graph-version models
-- [ ] load immutable graph snapshots per mall/version
-- [ ] validate graph connectivity, bounds, lengths, endpoints, and public POI reachability
-- [ ] make snapshot publication atomic and observable
-- [ ] test valid graphs and every validation failure class
-- [ ] run all tests before Task 6
-
-### Task 6: Build the routing engine
-
-**Files:**
-
-- Create: `src/main/java/com/kivo/backend/navigation/routing/**`
-- Create: `src/test/java/com/kivo/backend/navigation/routing/**`
-
-- [ ] implement pure-Java Dijkstra as the correctness reference
-- [ ] implement A* with an admissible heuristic and deterministic tie-breaking
-- [ ] add standard and accessible cost profiles with traversal penalties
-- [ ] produce ordered route points, floor transitions, distance, ETA, and instructions
-- [ ] test single/multi-floor routes, disconnected graphs, closures, one-way edges, accessibility,
-  deterministic ties, and A*/Dijkstra cost equivalence
-- [ ] add performance tests for a representative shopping-centre graph
-- [ ] run all tests before Task 7
-
-### Task 7: Expose routes and render map overlays
-
-**Files:**
-
-- Create: `src/main/java/com/kivo/backend/navigation/api/**`
-- Create: `src/main/java/com/kivo/backend/maps/rendering/**`
-- Create: `src/test/java/com/kivo/backend/{navigation/api,maps/rendering}/**`
-- Modify: `docs/api/openapi.yaml`
-
-- [ ] implement route creation/retrieval APIs from kiosk to destination
-- [ ] render safe transparent SVG overlays in the floor's normalized coordinate system
-- [ ] keep Intuiface-facing route collections flat and provide one overlay record per floor
-- [ ] return typed errors for invalid kiosk/destination/profile and unreachable routes
-- [ ] test JSON contracts, SVG escaping/content type, route lifecycle, and errors
-- [ ] run all tests before Task 8
-
-### Task 8: Implement route sharing and QR delivery
-
-**Files:**
-
-- Create: `src/main/java/com/kivo/backend/sharing/**`
-- Create: `src/main/resources/db/migration/V3__create_route_shares.sql`
-- Create: `src/test/java/com/kivo/backend/sharing/**`
-- Modify: `docs/api/openapi.yaml`
-
-> **JPA skill required (`spring-data-jpa`).** Activate it before entity/repository implementation.
-
-- [ ] generate high-entropy share tokens and store only a safe token representation
-- [ ] implement expiration and route snapshot/version consistency
-- [ ] return `routeUrl` and `qrImageUrl` for direct Intuiface binding
-- [ ] expose a mobile JSON representation and minimal responsive route page
-- [ ] test token entropy assumptions, expiry, unknown/revoked tokens, and concurrent access
-- [ ] run all tests before Task 9
-
-### Task 9: Add events and feedback
-
-**Files:**
-
-- Create: `src/main/java/com/kivo/backend/events/**`
-- Create: `src/main/java/com/kivo/backend/feedback/**`
-- Create: `src/main/resources/db/migration/V4__create_events_and_feedback.sql`
-- Create: `src/test/java/com/kivo/backend/{events,feedback}/**`
-- Modify: `docs/api/openapi.yaml`
-
-> **JPA skill required (`spring-data-jpa`).** Activate it before entity/repository implementation.
-
-- [ ] implement localized events sorted in the mall timezone
-- [ ] link events to routable places where applicable
-- [ ] accept anonymous positive/negative feedback with kiosk/route context
-- [ ] validate publication windows and reject malformed or oversized input
-- [ ] test timezone boundaries, ordering, localization, feedback validation, and persistence
-- [ ] run all tests before Task 10
-
-### Task 10: Harden operations, security, and observability
-
-**Files:**
-
-- Create: `src/main/java/com/kivo/backend/admin/**`
-- Create: `src/main/java/com/kivo/backend/common/security/**`
-- Create: `src/test/java/com/kivo/backend/{admin,common/security}/**`
-- Modify: `src/main/resources/application.properties`, deployment documentation
-
-- [ ] protect administration and graph publication operations
-- [ ] configure CORS for known web clients and production HTTPS assumptions
-- [ ] add rate limiting strategy for expensive/public endpoints
-- [ ] add health/readiness, structured logging, correlation IDs, and route metrics
-- [ ] add backup, restore, migration rollback, and graph recovery runbooks
-- [ ] test authorization rules, CORS, actuator exposure, and operational failure modes
-- [ ] run all tests before Task 11
-
-### Task 11: Validate Intuiface integration
-
-**Files:**
-
-- Create: `docs/integration/intuiface.md`
-- Create: `docs/integration/examples/**`
-- Modify: `docs/api/openapi.yaml`
-
-- [ ] create an Intuiface spike for categories, route creation, and remote overlay image binding
-- [ ] verify API Explorer behaviour for GET/POST, headers, HTTPS, arrays, and error triggers
-- [ ] document every screen-to-endpoint binding for Ariadna
-- [ ] test idle/reset behaviour without storing backend session state
-- [ ] execute the full kiosk scenario against a deployed test environment
-- [ ] record and test any contract adjustments before Task 12
-
-### Task 12: Deployment and release readiness
-
-**Files:**
-
-- Create: `Dockerfile`
-- Create: `.github/workflows/ci.yml`
-- Create: deployment and release documentation
-
-- [ ] create a non-root, reproducible application image
-- [ ] configure CI for build, unit/integration tests, formatting, and migration validation
-- [ ] configure staging from environment variables and managed secrets
-- [ ] run load tests for search/route endpoints and tune measured bottlenecks
-- [ ] verify acceptance scenarios and restore procedure on staging
-- [ ] tag the first backend release only after all quality gates pass
-
-### Task 13: Final documentation and handoff
-
-**Files:**
-
-- Modify: `README.md`, `docs/api/openapi.yaml`, integration and operations guides
-
-- [ ] verify all functional requirements and edge cases from this plan
-- [ ] run the complete unit, integration, architecture, and contract test suites
-- [ ] confirm committed migrations build a database from zero
-- [ ] document local development, data import, deployment, and troubleshooting
-- [ ] help Ariadna complete the final Intuiface integration walkthrough
-- [ ] move this plan to `docs/plans/completed/`
-
-## Post-Completion and External Inputs
-
-The following require external information but do not block initial backend development:
-
-- Final floor-plan artwork and stable dimensions from Ariadna.
-- Known real-world scale or reference distances for ETA calibration.
-- Location of kiosks, destinations, walkable paths, stairs, lifts, and restricted areas.
-- Target languages and final translated content.
-- Hosting provider, domain, TLS, monitoring destination, and production PostgreSQL service.
-- Intuiface Player platform/version and license capabilities.
-
-Before the real demo, run an on-site or plan-based route audit: every public destination must be
-reachable from every enabled kiosk under the standard profile, and accessibility claims must be
-verified against the real building rather than inferred from artwork.
+### Задача 3. Создать каталог ТЦ и модель карт
+
+**Файлы:** `catalog/**`, `maps/**`, `kiosks/**`, `V1__create_core_catalog.sql`, тесты.
+
+- [ ] создать Mall, Floor, Kiosk, Category, переводы и Place;
+- [ ] отделить persistence-сущности от API DTO;
+- [ ] добавить ограничения и индексы Flyway;
+- [ ] подготовить небольшой тестовый ТЦ;
+- [ ] протестировать persistence, fallback языка и ошибочные данные.
+
+### Задача 4. Реализовать каталог, поиск и bootstrap API
+
+- [ ] реализовать bootstrap киоска и read-model категорий/мест;
+- [ ] добавить ограниченный поиск и фильтрацию по категории;
+- [ ] возвращать плоские локализованные DTO;
+- [ ] проверить успех, пустую выдачу, неверный язык и отсутствующие ресурсы;
+- [ ] сверить OpenAPI-примеры с реальной сериализацией.
+
+### Задача 5. Хранить и валидировать навигационный граф
+
+- [ ] создать узлы, рёбра, геометрию, ограничения и версии графа;
+- [ ] загружать неизменяемые снимки графа;
+- [ ] валидировать связность, границы, длины и достижимость;
+- [ ] сделать публикацию снимка атомарной и наблюдаемой;
+- [ ] протестировать корректные и некорректные графы.
+
+### Задача 6. Реализовать движок маршрутов
+
+- [ ] реализовать Dijkstra как эталон;
+- [ ] реализовать A* с допустимой эвристикой и детерминированным выбором;
+- [ ] добавить стандартный и доступный профили;
+- [ ] формировать точки, переходы, расстояние, ETA и инструкции;
+- [ ] протестировать этажи, разрывы, закрытия, направления, доступность и эквивалентность A*/Dijkstra;
+- [ ] добавить performance-тесты на реалистичном графе.
+
+### Задача 7. Выдать маршрут и SVG-слои
+
+- [ ] реализовать создание/получение маршрута;
+- [ ] генерировать безопасные прозрачные SVG-слои;
+- [ ] вернуть один плоский overlay-объект на этаж;
+- [ ] добавить типизированные ошибки;
+- [ ] протестировать JSON, SVG, lifecycle и ошибки.
+
+### Задача 8. Передавать маршрут через QR
+
+- [ ] генерировать высокоэнтропийный токен и хранить безопасное представление;
+- [ ] реализовать expiry и согласованность версии маршрута;
+- [ ] вернуть `routeUrl` и `qrImageUrl`;
+- [ ] добавить мобильный JSON и минимальную адаптивную страницу;
+- [ ] протестировать expiry, неизвестные/отозванные токены и конкуренцию.
+
+### Задача 9. Добавить события и feedback
+
+- [ ] выдавать события в часовом поясе ТЦ;
+- [ ] связывать события с маршрутизируемыми местами;
+- [ ] принимать анонимную оценку;
+- [ ] проверять окна публикации и входные ограничения;
+- [ ] протестировать timezone, порядок, локализацию и persistence.
+
+### Задача 10. Усилить безопасность и эксплуатацию
+
+- [ ] защитить admin и публикацию графа;
+- [ ] настроить CORS и production HTTPS;
+- [ ] добавить rate limiting;
+- [ ] добавить readiness, структурированные логи, correlation ID и метрики;
+- [ ] создать инструкции backup/restore/rollback;
+- [ ] протестировать права и operational failure modes.
+
+### Задача 11. Проверить Intuiface
+
+- [ ] сделать spike категорий, маршрута и remote overlay;
+- [ ] проверить GET/POST, заголовки, HTTPS, массивы и error triggers;
+- [ ] описать привязку каждого экрана для Ариадны;
+- [ ] проверить idle/reset без backend-сессии;
+- [ ] пройти полный сценарий на тестовом окружении.
+
+### Задача 12. Подготовить деплой
+
+- [ ] создать воспроизводимый non-root Docker image;
+- [ ] настроить CI: сборка, тесты, форматирование и миграции;
+- [ ] настроить staging и secrets;
+- [ ] провести нагрузочные тесты;
+- [ ] проверить acceptance и восстановление;
+- [ ] выпустить первый тег после всех quality gates.
+
+### Задача 13. Финальная документация и передача
+
+- [ ] проверить требования и крайние случаи;
+- [ ] запустить все наборы тестов;
+- [ ] проверить создание БД с нуля;
+- [ ] описать разработку, импорт, деплой и troubleshooting;
+- [ ] помочь Ариадне провести интеграцию Intuiface;
+- [ ] перенести план в `docs/plans/completed/`.
+
+## Внешние данные
+
+Началу backend-разработки не мешает отсутствие следующих данных:
+
+- финальные планы этажей и размеры от Ариадны;
+- контрольные реальные расстояния для калибровки ETA;
+- точки киосков, магазинов, проходов, лестниц, лифтов и запретных зон;
+- полный список языков и переводы;
+- hosting, домен, TLS, мониторинг и production PostgreSQL;
+- платформа/версия Intuiface Player и возможности лицензии.
+
+Перед демонстрацией каждый публичный объект должен быть достижим из каждого активного киоска.
+Доступность маршрутов для МГН проверяется по реальному зданию, а не только по изображению плана.
