@@ -1,4 +1,4 @@
-package com.kivo.backend.catalog.api;
+package com.kivo.backend.catalog.application.query;
 
 import com.kivo.backend.catalog.persistence.entity.Category;
 import com.kivo.backend.catalog.persistence.entity.CategoryTranslation;
@@ -8,7 +8,7 @@ import org.mapstruct.MappingConstants;
 import org.mapstruct.ReportingPolicy;
 
 @Mapper(
-    unmappedTargetPolicy = ReportingPolicy.IGNORE,
+    unmappedTargetPolicy = ReportingPolicy.ERROR,
     componentModel = MappingConstants.ComponentModel.SPRING)
 public interface CategoryMapper {
 

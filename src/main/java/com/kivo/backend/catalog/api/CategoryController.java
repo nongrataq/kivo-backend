@@ -1,6 +1,7 @@
 package com.kivo.backend.catalog.api;
 
 import com.kivo.backend.catalog.application.CategoryQueryService;
+import com.kivo.backend.catalog.application.query.CategoryResponse;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;

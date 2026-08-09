@@ -1,4 +1,4 @@
-package com.kivo.backend.catalog.api;
+package com.kivo.backend.catalog.application.query;
 
 import com.kivo.backend.catalog.persistence.entity.Place;
 import com.kivo.backend.catalog.persistence.entity.PlaceTranslation;
@@ -8,7 +8,7 @@ import org.mapstruct.MappingConstants;
 import org.mapstruct.ReportingPolicy;
 
 @Mapper(
-    unmappedTargetPolicy = ReportingPolicy.IGNORE,
+    unmappedTargetPolicy = ReportingPolicy.ERROR,
     componentModel = MappingConstants.ComponentModel.SPRING)
 public interface PlaceMapper {
 
@@ -17,11 +17,11 @@ public interface PlaceMapper {
   @Mapping(source = "place.floor.code", target = "floorCode")
   @Mapping(source = "place.category.id", target = "categoryId")
   @Mapping(source = "place.category.code", target = "categoryCode")
-  @Mapping(source = "place.navigationNodeCode", target = "navigationNodeCode")
   @Mapping(source = "place.displayOrder", target = "displayOrder")
   PlaceResponse toPlaceResponse(PlaceTranslation placeTranslation);
 
   @Mapping(source = "code", target = "name")
+  @Mapping(target = "description", ignore = true)
   @Mapping(source = "floor.code", target = "floorCode")
   @Mapping(source = "category.id", target = "categoryId")
   @Mapping(source = "category.code", target = "categoryCode")

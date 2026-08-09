@@ -1,7 +1,7 @@
 package com.kivo.backend.catalog.application;
 
-import com.kivo.backend.catalog.api.CategoryMapper;
-import com.kivo.backend.catalog.api.CategoryResponse;
+import com.kivo.backend.catalog.application.query.CategoryMapper;
+import com.kivo.backend.catalog.application.query.CategoryResponse;
 import com.kivo.backend.catalog.persistence.entity.Category;
 import com.kivo.backend.catalog.persistence.entity.CategoryTranslation;
 import com.kivo.backend.catalog.persistence.entity.Mall;

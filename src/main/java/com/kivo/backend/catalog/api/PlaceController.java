@@ -1,6 +1,7 @@
 package com.kivo.backend.catalog.api;
 
 import com.kivo.backend.catalog.application.PlaceQueryService;
+import com.kivo.backend.catalog.application.query.PlaceResponse;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;

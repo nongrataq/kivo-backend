@@ -1,4 +1,4 @@
-package com.kivo.backend.catalog.api;
+package com.kivo.backend.catalog.application.query;
 
 import java.util.UUID;
 
@@ -10,5 +10,4 @@ public record PlaceResponse(
     String floorCode,
     UUID categoryId,
     String categoryCode,
-    String navigationNodeCode,
     int displayOrder) {}

@@ -19,6 +19,7 @@ version = "0.0.1-SNAPSHOT"
 description = "Indoor navigation backend for large retail spaces"
 
 val mapstructVersion = "1.6.3"
+val archUnitVersion = "1.4.2"
 
 java {
 	toolchain {
@@ -51,6 +52,7 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-flyway-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+	testImplementation("com.tngtech.archunit:archunit-junit5:$archUnitVersion")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

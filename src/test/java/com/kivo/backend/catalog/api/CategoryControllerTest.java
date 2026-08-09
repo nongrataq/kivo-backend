@@ -6,33 +6,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.kivo.backend.catalog.application.CategoryQueryService;
+import com.kivo.backend.catalog.application.query.CategoryResponse;
+import com.kivo.backend.common.configuration.WebMvcConfiguration;
 import com.kivo.backend.common.exception.handler.GlobalExceptionHandler;
 import com.kivo.backend.common.exception.service.MallNotFoundException;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.context.MessageSource;
-import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@WebMvcTest(CategoryController.class)
+@Import({GlobalExceptionHandler.class, WebMvcConfiguration.class})
 class CategoryControllerTest {
 
-  private CategoryQueryService categoryQueryService;
-  private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-  @BeforeEach
-  void setUp() {
-    categoryQueryService = org.mockito.Mockito.mock(CategoryQueryService.class);
-    mockMvc =
-        MockMvcBuilders.standaloneSetup(new CategoryController(categoryQueryService))
-            .setControllerAdvice(
-                new GlobalExceptionHandler(
-                    messageSource("exceptions"), messageSource("validation")))
-            .build();
-  }
+  @MockitoBean private CategoryQueryService categoryQueryService;
 
   @Test
   void returnsFlatJsonArray() throws Exception {
@@ -76,11 +70,12 @@ class CategoryControllerTest {
         .andExpect(jsonPath("$.code").value("MALL_NOT_FOUND"));
   }
 
-  private MessageSource messageSource(String basename) {
-    ReloadableResourceBundleMessageSource messageSource =
-        new ReloadableResourceBundleMessageSource();
-    messageSource.setBasename("classpath:localization/%s/%s".formatted(basename, basename));
-    messageSource.setDefaultEncoding("UTF-8");
-    return messageSource;
+  @Test
+  void rejectsMalformedLanguage() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/malls/demo-mall/categories").param("lang", "ru-RU"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+        .andExpect(jsonPath("$.errors").isMap());
   }
 }

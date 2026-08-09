@@ -1,7 +1,6 @@
 package com.kivo.backend.catalog.persistence.entity;
 
 import com.kivo.backend.common.persistence.AbstractUuidEntity;
-import com.kivo.backend.maps.persistence.entity.Floor;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,12 +11,11 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Getter

@@ -7,23 +7,25 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.kivo.backend.catalog.application.PlaceQueryService;
+import com.kivo.backend.catalog.application.query.PlaceResponse;
+import com.kivo.backend.common.configuration.WebMvcConfiguration;
+import com.kivo.backend.common.exception.handler.GlobalExceptionHandler;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+@WebMvcTest(PlaceController.class)
+@Import({GlobalExceptionHandler.class, WebMvcConfiguration.class})
 class PlaceControllerTest {
 
-  private PlaceQueryService placeQueryService;
-  private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
-  @BeforeEach
-  void setUp() {
-    placeQueryService = org.mockito.Mockito.mock(PlaceQueryService.class);
-    mockMvc = MockMvcBuilders.standaloneSetup(new PlaceController(placeQueryService)).build();
-  }
+  @MockitoBean private PlaceQueryService placeQueryService;
 
   @Test
   void returnsFlatLocalizedPlacesAndPassesFilters() throws Exception {
@@ -40,7 +42,6 @@ class PlaceControllerTest {
                     "L1",
                     categoryId,
                     "food",
-                    "node-grocery",
                     10)));
 
     mockMvc
@@ -57,10 +58,27 @@ class PlaceControllerTest {
         .andExpect(jsonPath("$[0].floorCode").value("L1"))
         .andExpect(jsonPath("$[0].categoryId").value(categoryId.toString()))
         .andExpect(jsonPath("$[0].categoryCode").value("food"))
-        .andExpect(jsonPath("$[0].navigationNodeCode").value("node-grocery"))
         .andExpect(jsonPath("$[0].displayOrder").value(10))
+        .andExpect(jsonPath("$[0].navigationNodeCode").doesNotExist())
         .andExpect(jsonPath("$[0].translations").doesNotExist());
 
     verify(placeQueryService).findPlaces("demo-mall", "gro", categoryId, "en");
+  }
+
+  @Test
+  void rejectsMalformedCategoryId() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/malls/demo-mall/places").param("categoryId", "not-a-uuid"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+        .andExpect(jsonPath("$.errors.categoryId").isArray());
+  }
+
+  @Test
+  void rejectsOversizedQuery() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/malls/demo-mall/places").param("q", "x".repeat(101)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
   }
 }

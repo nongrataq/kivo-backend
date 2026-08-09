@@ -1,7 +1,7 @@
 package com.kivo.backend.catalog.application;
 
-import com.kivo.backend.catalog.api.PlaceMapper;
-import com.kivo.backend.catalog.api.PlaceResponse;
+import com.kivo.backend.catalog.application.query.PlaceMapper;
+import com.kivo.backend.catalog.application.query.PlaceResponse;
 import com.kivo.backend.catalog.persistence.entity.Mall;
 import com.kivo.backend.catalog.persistence.entity.Place;
 import com.kivo.backend.catalog.persistence.entity.PlaceTranslation;

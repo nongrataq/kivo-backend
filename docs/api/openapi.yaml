@@ -138,8 +138,6 @@ components:
           format: uuid
         categoryCode:
           type: string
-        navigationNodeCode:
-          type: [string, 'null']
         displayOrder:
           type: integer
           format: int32

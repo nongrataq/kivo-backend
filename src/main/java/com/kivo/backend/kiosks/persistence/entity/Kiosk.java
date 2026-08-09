@@ -1,8 +1,8 @@
 package com.kivo.backend.kiosks.persistence.entity;
 
+import com.kivo.backend.catalog.persistence.entity.Floor;
 import com.kivo.backend.catalog.persistence.entity.Mall;
 import com.kivo.backend.common.persistence.AbstractUuidEntity;
-import com.kivo.backend.maps.persistence.entity.Floor;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

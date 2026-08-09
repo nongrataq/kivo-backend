@@ -1,6 +1,5 @@
-package com.kivo.backend.maps.persistence.entity;
+package com.kivo.backend.catalog.persistence.entity;
 
-import com.kivo.backend.catalog.persistence.entity.Mall;
 import com.kivo.backend.common.persistence.AbstractUuidEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,10 +11,9 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.math.BigDecimal;
 
 @Setter
 @Getter

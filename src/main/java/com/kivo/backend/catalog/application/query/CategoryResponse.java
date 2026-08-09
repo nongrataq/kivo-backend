@@ -1,4 +1,4 @@
-package com.kivo.backend.catalog.api;
+package com.kivo.backend.catalog.application.query;
 
 import java.util.UUID;
 
