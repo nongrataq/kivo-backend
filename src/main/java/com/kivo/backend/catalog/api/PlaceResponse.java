@@ -7,7 +7,8 @@ public record PlaceResponse(
     String code,
     String name,
     String description,
-    UUID categoryId,
     String floorCode,
+    UUID categoryId,
+    String categoryCode,
     String navigationNodeCode,
     int displayOrder) {}

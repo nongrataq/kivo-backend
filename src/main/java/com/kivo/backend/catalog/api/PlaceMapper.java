@@ -2,35 +2,28 @@ package com.kivo.backend.catalog.api;
 
 import com.kivo.backend.catalog.persistence.entity.Place;
 import com.kivo.backend.catalog.persistence.entity.PlaceTranslation;
-import java.util.Optional;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
+import org.mapstruct.ReportingPolicy;
 
-public class PlaceMapper {
+@Mapper(
+    unmappedTargetPolicy = ReportingPolicy.IGNORE,
+    componentModel = MappingConstants.ComponentModel.SPRING)
+public interface PlaceMapper {
 
-  public static PlaceResponse toPlaceResponse(
-      Place place, String language, String fallbackLanguage) {
-    Optional<PlaceTranslation> translation = findTranslation(place, language);
-    if (translation.isEmpty()) {
-      translation = findTranslation(place, fallbackLanguage);
-    }
+  @Mapping(source = "place.id", target = "id")
+  @Mapping(source = "place.code", target = "code")
+  @Mapping(source = "place.floor.code", target = "floorCode")
+  @Mapping(source = "place.category.id", target = "categoryId")
+  @Mapping(source = "place.category.code", target = "categoryCode")
+  @Mapping(source = "place.navigationNodeCode", target = "navigationNodeCode")
+  @Mapping(source = "place.displayOrder", target = "displayOrder")
+  PlaceResponse toPlaceResponse(PlaceTranslation placeTranslation);
 
-    String name = translation.map(PlaceTranslation::getName).orElse(place.getCode());
-    String description = translation.map(PlaceTranslation::getDescription).orElse(null);
-    PlaceResponse placeResponse =
-        new PlaceResponse(
-            place.getId(),
-            place.getCode(),
-            name,
-            description,
-            place.getCategory().getId(),
-            place.getFloor().getCode(),
-            place.getNavigationNodeCode(),
-            place.getDisplayOrder());
-    return placeResponse;
-  }
-
-  private static Optional<PlaceTranslation> findTranslation(Place place, String language) {
-    return place.getTranslations().stream()
-        .filter(translation -> translation.getLanguage().equalsIgnoreCase(language))
-        .findFirst();
-  }
+  @Mapping(source = "code", target = "name")
+  @Mapping(source = "floor.code", target = "floorCode")
+  @Mapping(source = "category.id", target = "categoryId")
+  @Mapping(source = "category.code", target = "categoryCode")
+  PlaceResponse toPlaceResponse(Place place);
 }

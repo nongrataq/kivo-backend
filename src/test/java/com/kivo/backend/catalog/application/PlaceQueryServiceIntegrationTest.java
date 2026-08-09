@@ -3,7 +3,7 @@ package com.kivo.backend.catalog.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.kivo.backend.common.api.ResourceNotFoundException;
+import com.kivo.backend.common.exception.service.MallNotFoundException;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-@Sql("/sql/place-test-data.sql")
+@Sql("/sql/category-test-data.sql")
 class PlaceQueryServiceIntegrationTest {
 
   private static final UUID FOOD_CATEGORY_ID =
@@ -29,26 +29,28 @@ class PlaceQueryServiceIntegrationTest {
 
     assertThat(places)
         .extracting(place -> place.code() + ":" + place.name())
-        .containsExactly("coffee-shop:Кофейня", "fashion-shop:Бутик", "information:information");
+        .containsExactly(
+            "grocery:Продуктовый магазин", "boutique:Бутик", "information:information");
+    assertThat(places.getFirst().floorCode()).isEqualTo("L1");
+    assertThat(places.getFirst().categoryCode()).isEqualTo("food");
   }
 
   @Test
-  void filtersByCategory() {
-    var places = placeQueryService.findPlaces("demo-mall", null, FOOD_CATEGORY_ID, "ru");
+  void filtersByCategoryAndSearchesAcrossTranslations() {
+    var places = placeQueryService.findPlaces("demo-mall", "GROCERY", FOOD_CATEGORY_ID, "ru");
 
     assertThat(places)
-        .extracting(place -> place.code())
-        .containsExactly("coffee-shop", "information");
+        .singleElement()
+        .satisfies(place -> assertThat(place.code()).isEqualTo("grocery"));
   }
 
   @Test
-  void searchesNamesDescriptionsAndCodes() {
-    assertThat(placeQueryService.findPlaces("demo-mall", "ДеСеРт", null, "ru"))
-        .extracting(place -> place.code())
-        .containsExactly("coffee-shop");
-    assertThat(placeQueryService.findPlaces("demo-mall", "fashion", null, "ru"))
-        .extracting(place -> place.code())
-        .containsExactly("fashion-shop");
+  void searchesDescriptionsIgnoringCase() {
+    var places = placeQueryService.findPlaces("demo-mall", "АкСеСсУаР", null, "ru");
+
+    assertThat(places)
+        .singleElement()
+        .satisfies(place -> assertThat(place.code()).isEqualTo("boutique"));
   }
 
   @Test
@@ -57,8 +59,7 @@ class PlaceQueryServiceIntegrationTest {
 
     assertThat(places)
         .extracting(place -> place.code() + ":" + place.name())
-        .containsExactly(
-            "coffee-shop:Coffee shop", "fashion-shop:Бутик", "information:information");
+        .containsExactly("grocery:Grocery store", "boutique:Бутик", "information:information");
   }
 
   @Test
@@ -69,7 +70,6 @@ class PlaceQueryServiceIntegrationTest {
   @Test
   void rejectsUnknownMall() {
     assertThatThrownBy(() -> placeQueryService.findPlaces("unknown", null, null, "ru"))
-        .isInstanceOf(ResourceNotFoundException.class)
-        .hasMessage("Торговый центр не найден: unknown");
+        .isInstanceOf(MallNotFoundException.class);
   }
 }

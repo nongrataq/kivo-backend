@@ -20,29 +20,29 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
       join place.category category
       where mall.code = :mallCode
         and mall.active = true
-        and place.active = true
         and floor.active = true
         and category.active = true
+        and place.active = true
         and (:categoryId is null or category.id = :categoryId)
         and (
           :query is null
-          or lower(place.code) like lower(concat('%', :query, '%'))
+          or lower(place.code) like concat('%', lower(:query), '%')
           or exists (
             select translation.id
             from PlaceTranslation translation
             where translation.place = place
               and (
-                lower(translation.name) like lower(concat('%', :query, '%'))
-                or lower(translation.description) like lower(concat('%', :query, '%'))
+                lower(translation.name) like concat('%', lower(:query), '%')
+                or lower(translation.description) like concat('%', lower(:query), '%')
               )
           )
         )
       order by place.displayOrder, place.code
       """)
-  List<UUID> findActiveIdsByMallCodeAndFilters(
+  List<UUID> searchActiveIds(
       @Param("mallCode") String mallCode,
-      @Param("categoryId") UUID categoryId,
       @Param("query") String query,
+      @Param("categoryId") UUID categoryId,
       Pageable pageable);
 
   @Query(

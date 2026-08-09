@@ -62,14 +62,13 @@ paths:
         - name: q
           in: query
           required: false
-          description: Поиск по коду, названию или описанию места.
+          description: Поиск без учёта регистра по коду, названию и описанию места.
           schema:
             type: string
             maxLength: 100
         - name: categoryId
           in: query
           required: false
-          description: Фильтр по идентификатору категории.
           schema:
             type: string
             format: uuid
@@ -83,12 +82,12 @@ paths:
             default: ru
       responses:
         '200':
-          description: Не более 100 мест в порядке отображения
+          description: Не более 50 мест в порядке отображения
           content:
             application/json:
               schema:
                 type: array
-                maxItems: 100
+                maxItems: 50
                 items:
                   $ref: '#/components/schemas/Place'
         '400':
@@ -121,7 +120,7 @@ components:
           format: int32
     Place:
       type: object
-      required: [id, code, name, categoryId, floorCode, displayOrder]
+      required: [id, code, name, floorCode, categoryId, categoryCode, displayOrder]
       properties:
         id:
           type: string
@@ -131,18 +130,16 @@ components:
         name:
           type: string
         description:
-          type:
-            - string
-            - 'null'
+          type: [string, 'null']
+        floorCode:
+          type: string
         categoryId:
           type: string
           format: uuid
-        floorCode:
+        categoryCode:
           type: string
         navigationNodeCode:
-          type:
-            - string
-            - 'null'
+          type: [string, 'null']
         displayOrder:
           type: integer
           format: int32
@@ -158,3 +155,9 @@ components:
           type: string
         code:
           type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
