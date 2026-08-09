@@ -185,7 +185,7 @@ substitute for meaningful assertions; the routing engine receives the highest br
 - [x] externalize database credentials and add a local PostgreSQL Compose service
 - [x] add an isolated H2 test profile for the initial context smoke test
 - [x] run the complete initial test suite
-- [ ] create the initial Git commit and push synchronized `main` to GitHub
+- [x] create the initial Git commit and push synchronized `main` to GitHub
 
 ### Task 2: Establish API and module foundations
 
