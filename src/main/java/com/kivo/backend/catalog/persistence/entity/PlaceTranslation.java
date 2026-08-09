@@ -8,19 +8,22 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
-@Setter
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "place_translation")
 public class PlaceTranslation extends AbstractUuidEntity {
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "place_id", nullable = false)
+  @NotNull
   private Place place;
 
   @NotBlank
@@ -37,7 +40,21 @@ public class PlaceTranslation extends AbstractUuidEntity {
   @Column(name = "description", length = 2000)
   private String description;
 
-  protected PlaceTranslation() {}
+  public static PlaceTranslation create(String language, String name, String description) {
+    PlaceTranslation translation = new PlaceTranslation();
+    translation.language = language;
+    translation.name = name;
+    translation.description = description;
+    return translation;
+  }
+
+  void attachTo(Place place) {
+    this.place = place;
+  }
+
+  void detach() {
+    place = null;
+  }
 
   @Override
   public String toString() {

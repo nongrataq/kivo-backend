@@ -20,6 +20,7 @@ description = "Indoor navigation backend for large retail spaces"
 
 val mapstructVersion = "1.6.3"
 val archUnitVersion = "1.4.2"
+val testcontainersVersion = "2.0.5"
 
 java {
 	toolchain {
@@ -46,13 +47,15 @@ dependencies {
 	runtimeOnly("org.postgresql:postgresql")
 	testCompileOnly("org.projectlombok:lombok")
 	testAnnotationProcessor("org.projectlombok:lombok")
-	testRuntimeOnly("com.h2database:h2")
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-flyway-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testImplementation("com.tngtech.archunit:archunit-junit5:$archUnitVersion")
+	testImplementation("org.springframework.boot:spring-boot-testcontainers")
+	testImplementation("org.testcontainers:testcontainers-junit-jupiter:$testcontainersVersion")
+	testImplementation("org.testcontainers:testcontainers-postgresql:$testcontainersVersion")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

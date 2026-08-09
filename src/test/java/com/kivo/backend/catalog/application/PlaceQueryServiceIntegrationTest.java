@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.kivo.backend.common.exception.service.MallNotFoundException;
+import com.kivo.backend.testsupport.PostgreSqlIntegrationTest;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @ActiveProfiles("test")
 @Transactional
 @Sql("/sql/category-test-data.sql")
-class PlaceQueryServiceIntegrationTest {
+class PlaceQueryServiceIntegrationTest extends PostgreSqlIntegrationTest {
 
   private static final UUID FOOD_CATEGORY_ID =
       UUID.fromString("00000000-0000-0000-0000-000000000101");

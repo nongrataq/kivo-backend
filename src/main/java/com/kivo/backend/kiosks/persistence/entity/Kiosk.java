@@ -10,22 +10,26 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
-@Setter
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "kiosk")
 public class Kiosk extends AbstractUuidEntity {
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "mall_id", nullable = false)
+  @NotNull
   private Mall mall;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "floor_id", nullable = false)
+  @NotNull
   private Floor floor;
 
   @NotBlank
@@ -39,8 +43,6 @@ public class Kiosk extends AbstractUuidEntity {
 
   @Column(name = "enabled", nullable = false)
   private boolean enabled = true;
-
-  protected Kiosk() {}
 
   @Override
   public String toString() {

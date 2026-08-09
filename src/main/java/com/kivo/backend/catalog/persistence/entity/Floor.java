@@ -9,20 +9,23 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
+import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
-@Setter
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "floor")
 public class Floor extends AbstractUuidEntity {
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "mall_id", nullable = false)
+  @NotNull
   private Mall mall;
 
   @NotBlank
@@ -59,8 +62,6 @@ public class Floor extends AbstractUuidEntity {
 
   @Column(name = "active", nullable = false)
   private boolean active = true;
-
-  protected Floor() {}
 
   @Override
   public String toString() {

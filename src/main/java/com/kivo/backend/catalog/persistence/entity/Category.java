@@ -10,21 +10,24 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "category")
 public class Category extends AbstractUuidEntity {
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "mall_id", nullable = false)
+  @NotNull
   private Mall mall;
 
   @NotBlank
@@ -45,20 +48,18 @@ public class Category extends AbstractUuidEntity {
       orphanRemoval = true)
   private Set<CategoryTranslation> translations = new LinkedHashSet<>();
 
-  protected Category() {}
-
   public Set<CategoryTranslation> getTranslations() {
     return Collections.unmodifiableSet(translations);
   }
 
   public void addTranslation(CategoryTranslation translation) {
     translations.add(translation);
-    translation.setCategory(this);
+    translation.attachTo(this);
   }
 
   public void removeTranslation(CategoryTranslation translation) {
     translations.remove(translation);
-    translation.setCategory(null);
+    translation.detach();
   }
 
   @Override

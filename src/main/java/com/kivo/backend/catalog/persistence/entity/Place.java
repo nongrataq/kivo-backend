@@ -10,31 +10,34 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "place")
 public class Place extends AbstractUuidEntity {
 
-  @Setter
-  @Getter
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "mall_id", nullable = false)
+  @NotNull
   private Mall mall;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "floor_id", nullable = false)
+  @NotNull
   private Floor floor;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "category_id", nullable = false)
+  @NotNull
   private Category category;
 
   @NotBlank
@@ -59,20 +62,18 @@ public class Place extends AbstractUuidEntity {
       orphanRemoval = true)
   private Set<PlaceTranslation> translations = new LinkedHashSet<>();
 
-  protected Place() {}
-
   public Set<PlaceTranslation> getTranslations() {
     return Collections.unmodifiableSet(translations);
   }
 
   public void addTranslation(PlaceTranslation translation) {
     translations.add(translation);
-    translation.setPlace(this);
+    translation.attachTo(this);
   }
 
   public void removeTranslation(PlaceTranslation translation) {
     translations.remove(translation);
-    translation.setPlace(null);
+    translation.detach();
   }
 
   @Override

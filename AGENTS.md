@@ -176,7 +176,7 @@ POST /api/v1/feedback
 - [x] создать проект Java 25 / Spring Boot 4.1 / Gradle;
 - [x] подключить PostgreSQL, Flyway, JPA, Validation, Actuator и MVC;
 - [x] вынести параметры БД в окружение и добавить PostgreSQL Compose;
-- [x] добавить тестовый H2-профиль;
+- [x] заменить начальный H2-профиль обязательными PostgreSQL Testcontainers-проверками;
 - [x] запустить начальный набор тестов;
 - [x] создать GitHub-репозиторий и синхронизировать `main`.
 
@@ -192,13 +192,13 @@ POST /api/v1/feedback
 
 ### Задача 3. Создать каталог ТЦ и модель карт
 
-**Файлы:** `catalog/**`, `maps/**`, `kiosks/**`, `V1__create_core_catalog.sql`, тесты.
+**Файлы:** `catalog/**`, `maps/**`, `kiosks/**`, миграции `V1`/`V2`, тесты.
 
-- [x] создать Mall, Floor, Kiosk, Category, переводы и Place;
+- [x] создать Mall, MallLanguage, Floor, Kiosk, Category, переводы и Place;
 - [x] отделить persistence-сущности от API DTO;
 - [x] добавить ограничения и индексы Flyway;
 - [x] подготовить небольшой тестовый ТЦ;
-- [ ] протестировать persistence, fallback языка и ошибочные данные.
+- [x] протестировать persistence, fallback языка и ошибочные данные на PostgreSQL.
 
 ### Задача 4. Реализовать каталог, поиск и bootstrap API
 

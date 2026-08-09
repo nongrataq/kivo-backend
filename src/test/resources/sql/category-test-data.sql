@@ -1,6 +1,13 @@
 insert into mall (id, code, name, default_language, timezone, active, created_at)
 values ('00000000-0000-0000-0000-000000000001', 'demo-mall', 'Демо ТЦ', 'ru', 'Europe/Moscow', true, current_timestamp);
 
+insert into mall_language (id, mall_id, language, display_label, display_order, active)
+values ('00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000001', 'ru', 'RU', 10, true),
+       ('00000000-0000-0000-0000-000000000012', '00000000-0000-0000-0000-000000000001', 'tt', 'TT', 20, true),
+       ('00000000-0000-0000-0000-000000000013', '00000000-0000-0000-0000-000000000001', 'en', 'EN', 30, true),
+       ('00000000-0000-0000-0000-000000000014', '00000000-0000-0000-0000-000000000001', 'zh', '中文', 40, true),
+       ('00000000-0000-0000-0000-000000000015', '00000000-0000-0000-0000-000000000001', 'ar', 'AR', 50, true);
+
 insert into category (id, mall_id, code, display_order, active)
 values ('00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000001', 'food', 10, true),
        ('00000000-0000-0000-0000-000000000102', '00000000-0000-0000-0000-000000000001', 'fashion', 20, true),
@@ -15,6 +22,9 @@ values ('00000000-0000-0000-0000-000000000201', '00000000-0000-0000-0000-0000000
 insert into floor (id, mall_id, code, name, level_number, display_order, map_url, coordinate_width, coordinate_height, meters_per_unit, active)
 values ('00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000001', 'L1', 'Первый этаж', 1, 10, null, 10000, 10000, 0.1, true),
        ('00000000-0000-0000-0000-000000000302', '00000000-0000-0000-0000-000000000001', 'L2', 'Закрытый этаж', 2, 20, null, 10000, 10000, 0.1, false);
+
+insert into kiosk (id, mall_id, floor_id, code, start_navigation_node_code, enabled)
+values ('00000000-0000-0000-0000-000000000601', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000301', 'demo-kiosk', 'node-kiosk', true);
 
 insert into place (id, mall_id, floor_id, category_id, code, navigation_node_code, display_order, active)
 values ('00000000-0000-0000-0000-000000000401', '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000301', '00000000-0000-0000-0000-000000000101', 'grocery', 'node-grocery', 10, true),
