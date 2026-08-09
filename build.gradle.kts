@@ -18,6 +18,8 @@ group = "com.kivo"
 version = "0.0.1-SNAPSHOT"
 description = "Indoor navigation backend for large retail spaces"
 
+val mapstructVersion = "1.6.3"
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(25)
@@ -29,13 +31,20 @@ repositories {
 }
 
 dependencies {
+	compileOnly("org.projectlombok:lombok")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-flyway")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.flywaydb:flyway-database-postgresql")
+	implementation("org.mapstruct:mapstruct:$mapstructVersion")
+	annotationProcessor("org.projectlombok:lombok")
+	annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+	annotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
 	runtimeOnly("org.postgresql:postgresql")
+	testCompileOnly("org.projectlombok:lombok")
+	testAnnotationProcessor("org.projectlombok:lombok")
 	testRuntimeOnly("com.h2database:h2")
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")

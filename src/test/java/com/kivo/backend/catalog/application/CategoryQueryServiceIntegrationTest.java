@@ -3,7 +3,7 @@ package com.kivo.backend.catalog.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.kivo.backend.common.api.ResourceNotFoundException;
+import com.kivo.backend.common.exception.service.MallNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,7 +40,7 @@ class CategoryQueryServiceIntegrationTest {
   @Test
   void rejectsUnknownMall() {
     assertThatThrownBy(() -> categoryQueryService.findCategories("unknown", "ru"))
-        .isInstanceOf(ResourceNotFoundException.class)
-        .hasMessage("Торговый центр не найден: unknown");
+        .isInstanceOf(MallNotFoundException.class)
+        .hasMessage("exception.mall.notFoundByCode");
   }
 }
