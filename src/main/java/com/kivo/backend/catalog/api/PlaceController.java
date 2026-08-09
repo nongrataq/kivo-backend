@@ -29,7 +29,7 @@ public class PlaceController {
       @RequestParam(required = false) @Size(max = 100, message = "{validation.place.query.size}")
           String q,
       @RequestParam(required = false) UUID categoryId,
-      @RequestParam(defaultValue = "ru")
+      @RequestParam(required = false)
           @Pattern(regexp = "[a-z]{2,3}", message = "{validation.language.pattern}")
           String lang) {
     return placeQueryService.findPlaces(mallCode, q, categoryId, lang);

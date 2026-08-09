@@ -182,8 +182,8 @@ class CatalogPersistenceIntegrationTest extends PostgreSqlIntegrationTest {
         values (?, ?, ?, ?, ?, true, current_timestamp)
         """,
         UUID.fromString("00000000-0000-0000-0000-000000000700"),
-        "second-mall",
-        "Второй ТЦ",
+        "constraint-mall",
+        "ТЦ для проверки ограничений",
         "ru",
         "Europe/Moscow");
     jdbcTemplate.update(

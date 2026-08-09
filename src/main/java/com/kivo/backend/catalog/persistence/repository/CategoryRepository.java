@@ -21,4 +21,17 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
       order by category.displayOrder, category.code
       """)
   List<Category> findActiveByMallCode(@Param("mallCode") String mallCode);
+
+  @Query(
+      """
+      select (count(category) > 0)
+      from Category category
+      join category.mall mall
+      where category.id = :categoryId
+        and category.active = true
+        and mall.code = :mallCode
+        and mall.active = true
+      """)
+  boolean existsActiveByIdAndMallCode(
+      @Param("categoryId") UUID categoryId, @Param("mallCode") String mallCode);
 }

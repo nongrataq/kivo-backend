@@ -3,7 +3,9 @@ package com.kivo.backend.catalog.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.kivo.backend.common.exception.service.CategoryNotFoundException;
 import com.kivo.backend.common.exception.service.MallNotFoundException;
+import com.kivo.backend.common.exception.service.PlaceNotFoundException;
 import com.kivo.backend.testsupport.PostgreSqlIntegrationTest;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,10 @@ class PlaceQueryServiceIntegrationTest extends PostgreSqlIntegrationTest {
 
   private static final UUID FOOD_CATEGORY_ID =
       UUID.fromString("00000000-0000-0000-0000-000000000101");
+  private static final UUID FOREIGN_CATEGORY_ID =
+      UUID.fromString("00000000-0000-0000-0000-000000000801");
+  private static final UUID GROCERY_PLACE_ID =
+      UUID.fromString("00000000-0000-0000-0000-000000000401");
 
   @Autowired private PlaceQueryService placeQueryService;
 
@@ -72,5 +78,32 @@ class PlaceQueryServiceIntegrationTest extends PostgreSqlIntegrationTest {
   void rejectsUnknownMall() {
     assertThatThrownBy(() -> placeQueryService.findPlaces("unknown", null, null, "ru"))
         .isInstanceOf(MallNotFoundException.class);
+  }
+
+  @Test
+  void rejectsCategoryFromAnotherMall() {
+    assertThatThrownBy(
+            () -> placeQueryService.findPlaces("demo-mall", null, FOREIGN_CATEGORY_ID, "ru"))
+        .isInstanceOf(CategoryNotFoundException.class);
+  }
+
+  @Test
+  void returnsOneLocalizedPlaceAndUsesDefaultLanguageWhenOmitted() {
+    var place = placeQueryService.findPlace(GROCERY_PLACE_ID, null);
+
+    assertThat(place.code()).isEqualTo("grocery");
+    assertThat(place.name()).isEqualTo("Продуктовый магазин");
+    assertThat(place.floorCode()).isEqualTo("L1");
+  }
+
+  @Test
+  void rejectsUnknownOrInactivePlace() {
+    assertThatThrownBy(
+            () ->
+                placeQueryService.findPlace(
+                    UUID.fromString("00000000-0000-0000-0000-000000000403"), "ru"))
+        .isInstanceOf(PlaceNotFoundException.class);
+    assertThatThrownBy(() -> placeQueryService.findPlace(UUID.randomUUID(), "ru"))
+        .isInstanceOf(PlaceNotFoundException.class);
   }
 }

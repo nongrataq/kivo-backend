@@ -39,6 +39,15 @@ class CategoryQueryServiceIntegrationTest extends PostgreSqlIntegrationTest {
   }
 
   @Test
+  void usesMallDefaultLanguageWhenParameterIsOmitted() {
+    var categories = categoryQueryService.findCategories("demo-mall", null);
+
+    assertThat(categories)
+        .extracting(category -> category.code() + ":" + category.name())
+        .containsExactly("food:Гастрономия", "fashion:Мода");
+  }
+
+  @Test
   void rejectsUnknownMall() {
     assertThatThrownBy(() -> categoryQueryService.findCategories("unknown", "ru"))
         .isInstanceOf(MallNotFoundException.class)

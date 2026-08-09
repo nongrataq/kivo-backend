@@ -2,30 +2,67 @@ openapi: 3.1.0
 info:
   title: Kivo Backend API
   version: 1.0.0
-  description: JSON API системы навигации Kivo.
+  description: Стабильный JSON API системы навигации Kivo для Intuiface.
 servers:
   - url: /api/v1
 paths:
-  /malls/{mallCode}/categories:
+  /kiosks/{kioskCode}/bootstrap:
     get:
-      operationId: getCategories
-      summary: Получить активные категории торгового центра
+      operationId: getKioskBootstrap
+      summary: Получить конфигурацию активного киоска
       parameters:
-        - name: mallCode
+        - name: kioskCode
           in: path
           required: true
           schema:
             type: string
             minLength: 1
             maxLength: 64
-        - name: lang
-          in: query
-          required: false
-          description: Язык ответа. При отсутствии перевода используется язык ТЦ по умолчанию.
-          schema:
-            type: string
-            pattern: '^[a-z]{2,3}$'
-            default: ru
+        - $ref: '#/components/parameters/Language'
+      responses:
+        '200':
+          description: Плоская стартовая конфигурация киоска
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KioskBootstrap'
+              example:
+                kioskCode: demo-kiosk
+                mallCode: demo-mall
+                mallName: Демо ТЦ
+                defaultLanguage: ru
+                selectedLanguage: en
+                currentFloorCode: L1
+                languages:
+                  - code: ru
+                    displayLabel: RU
+                    displayOrder: 10
+                  - code: en
+                    displayLabel: EN
+                    displayOrder: 30
+                floors:
+                  - code: L1
+                    name: Первый этаж
+                    levelNumber: 1
+                    displayOrder: 10
+                    mapImageUrl: https://cdn.example.com/maps/demo-mall/L1.png
+                    coordinateWidth: 10000
+                    coordinateHeight: 10000
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: Киоск не найден или неактивен
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /malls/{mallCode}/categories:
+    get:
+      operationId: getCategories
+      summary: Получить активные категории торгового центра
+      parameters:
+        - $ref: '#/components/parameters/MallCode'
+        - $ref: '#/components/parameters/Language'
       responses:
         '200':
           description: Категории в порядке отображения
@@ -35,12 +72,13 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Category'
+              example:
+                - id: 00000000-0000-0000-0000-000000000101
+                  code: food
+                  name: Гастрономия
+                  displayOrder: 10
         '400':
-          description: Ошибка валидации
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
+          $ref: '#/components/responses/ValidationError'
         '404':
           description: Торговый центр не найден
           content:
@@ -52,13 +90,7 @@ paths:
       operationId: getPlaces
       summary: Найти активные места торгового центра
       parameters:
-        - name: mallCode
-          in: path
-          required: true
-          schema:
-            type: string
-            minLength: 1
-            maxLength: 64
+        - $ref: '#/components/parameters/MallCode'
         - name: q
           in: query
           required: false
@@ -69,17 +101,11 @@ paths:
         - name: categoryId
           in: query
           required: false
+          description: Категория должна принадлежать указанному торговому центру.
           schema:
             type: string
             format: uuid
-        - name: lang
-          in: query
-          required: false
-          description: Язык ответа. При отсутствии перевода используется язык ТЦ по умолчанию.
-          schema:
-            type: string
-            pattern: '^[a-z]{2,3}$'
-            default: ru
+        - $ref: '#/components/parameters/Language'
       responses:
         '200':
           description: Не более 50 мест в порядке отображения
@@ -90,20 +116,159 @@ paths:
                 maxItems: 50
                 items:
                   $ref: '#/components/schemas/Place'
+              example:
+                - id: 00000000-0000-0000-0000-000000000401
+                  code: grocery
+                  name: Grocery store
+                  description: Fresh groceries
+                  floorCode: L1
+                  categoryId: 00000000-0000-0000-0000-000000000101
+                  categoryCode: food
+                  displayOrder: 10
         '400':
-          description: Ошибка валидации
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: Торговый центр или категория не найдены
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /places/{placeId}:
+    get:
+      operationId: getPlace
+      summary: Получить одно активное место
+      parameters:
+        - name: placeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/Language'
+      responses:
+        '200':
+          description: Локализованная карточка места
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Place'
+              example:
+                id: 00000000-0000-0000-0000-000000000401
+                code: grocery
+                name: Grocery store
+                description: Fresh groceries
+                floorCode: L1
+                categoryId: 00000000-0000-0000-0000-000000000101
+                categoryCode: food
+                displayOrder: 10
+        '400':
+          $ref: '#/components/responses/ValidationError'
         '404':
-          description: Торговый центр не найден
+          description: Место не найдено или неактивно
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
 components:
+  parameters:
+    MallCode:
+      name: mallCode
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+    Language:
+      name: lang
+      in: query
+      required: false
+      description: >-
+        Код языка из двух или трёх строчных латинских букв. Если параметр отсутствует,
+        используется язык ТЦ; если перевода нет — язык ТЦ, затем стабильный code.
+      schema:
+        type: string
+        pattern: '^[a-z]{2,3}$'
+  responses:
+    ValidationError:
+      description: Ошибка валидации параметров
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
   schemas:
+    KioskBootstrap:
+      type: object
+      required:
+        - kioskCode
+        - mallCode
+        - mallName
+        - defaultLanguage
+        - selectedLanguage
+        - currentFloorCode
+        - languages
+        - floors
+      properties:
+        kioskCode:
+          type: string
+        mallCode:
+          type: string
+        mallName:
+          type: string
+        defaultLanguage:
+          type: string
+        selectedLanguage:
+          type: string
+        currentFloorCode:
+          type: string
+        languages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Language'
+        floors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Floor'
+    Language:
+      type: object
+      required: [code, displayLabel, displayOrder]
+      properties:
+        code:
+          type: string
+        displayLabel:
+          type: string
+        displayOrder:
+          type: integer
+          format: int32
+    Floor:
+      type: object
+      required:
+        - code
+        - name
+        - levelNumber
+        - displayOrder
+        - coordinateWidth
+        - coordinateHeight
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        levelNumber:
+          type: integer
+          format: int32
+        displayOrder:
+          type: integer
+          format: int32
+        mapImageUrl:
+          type: [string, 'null']
+          format: uri
+        coordinateWidth:
+          type: integer
+          format: int32
+        coordinateHeight:
+          type: integer
+          format: int32
     Category:
       type: object
       required: [id, code, name, displayOrder]

@@ -25,7 +25,7 @@ public class CategoryController {
   public List<CategoryResponse> getCategories(
       @PathVariable @Size(min = 1, max = 64, message = "{validation.mallCode.size}")
           String mallCode,
-      @RequestParam(defaultValue = "ru")
+      @RequestParam(required = false)
           @Pattern(regexp = "[a-z]{2,3}", message = "{validation.language.pattern}")
           String lang) {
     return categoryQueryService.findCategories(mallCode, lang);

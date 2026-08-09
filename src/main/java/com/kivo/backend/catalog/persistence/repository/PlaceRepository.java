@@ -3,6 +3,7 @@ package com.kivo.backend.catalog.persistence.repository;
 import com.kivo.backend.catalog.persistence.entity.Place;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -56,4 +57,20 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
       order by place.displayOrder, place.code
       """)
   List<Place> findAllWithDetailsByIdIn(@Param("ids") Collection<UUID> ids);
+
+  @Query(
+      """
+      select distinct place
+      from Place place
+      join fetch place.mall mall
+      join fetch place.floor floor
+      join fetch place.category category
+      left join fetch place.translations translation
+      where place.id = :placeId
+        and place.active = true
+        and mall.active = true
+        and floor.active = true
+        and category.active = true
+      """)
+  Optional<Place> findActiveWithDetailsById(@Param("placeId") UUID placeId);
 }

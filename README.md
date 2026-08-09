@@ -44,6 +44,21 @@ docker compose up -d
 .\gradlew.bat spotlessCheck test
 ```
 
+Интеграционные тесты поднимают чистый PostgreSQL 17 через Testcontainers и применяют все миграции
+Flyway. Поэтому для полного quality gate должен быть запущен Docker Desktop.
+
+## Реализованный API
+
+```text
+GET /api/v1/kiosks/{kioskCode}/bootstrap?lang=
+GET /api/v1/malls/{mallCode}/categories?lang=
+GET /api/v1/malls/{mallCode}/places?q=&categoryId=&lang=
+GET /api/v1/places/{placeId}?lang=
+```
+
+`lang` необязателен: без него используется язык ТЦ по умолчанию. Ответы не содержат внутренних
+navigation node codes; bootstrap возвращает только плоские элементы массивов языков и этажей.
+
 ## Документация
 
 Живой план реализации и архитектурные решения находятся в

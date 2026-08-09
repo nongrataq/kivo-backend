@@ -39,7 +39,18 @@ class ArchitectureTest {
   }
 
   @Test
-  void controllersDoNotDependOnPersistenceEntities() {
+  void apiDoesNotDependOnPersistence() {
+    noClasses()
+        .that()
+        .resideInAPackage("..api..")
+        .should()
+        .dependOnClassesThat()
+        .resideInAPackage("..persistence..")
+        .check(CLASSES);
+  }
+
+  @Test
+  void controllersDoNotExposePersistenceEntities() {
     noClasses()
         .that()
         .areAnnotatedWith(RestController.class)

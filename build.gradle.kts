@@ -53,6 +53,7 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testImplementation("com.tngtech.archunit:archunit-junit5:$archUnitVersion")
+	testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
 	testImplementation("org.springframework.boot:spring-boot-testcontainers")
 	testImplementation("org.testcontainers:testcontainers-junit-jupiter:$testcontainersVersion")
 	testImplementation("org.testcontainers:testcontainers-postgresql:$testcontainersVersion")

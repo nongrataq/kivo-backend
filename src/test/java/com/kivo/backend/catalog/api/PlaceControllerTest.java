@@ -10,6 +10,7 @@ import com.kivo.backend.catalog.application.PlaceQueryService;
 import com.kivo.backend.catalog.application.query.PlaceResponse;
 import com.kivo.backend.common.configuration.WebMvcConfiguration;
 import com.kivo.backend.common.exception.handler.GlobalExceptionHandler;
+import com.kivo.backend.common.exception.service.CategoryNotFoundException;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -80,5 +81,17 @@ class PlaceControllerTest {
         .perform(get("/api/v1/malls/demo-mall/places").param("q", "x".repeat(101)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+  }
+
+  @Test
+  void returnsProblemWhenCategoryDoesNotBelongToMall() throws Exception {
+    UUID categoryId = UUID.fromString("00000000-0000-0000-0000-000000000801");
+    when(placeQueryService.findPlaces("demo-mall", null, categoryId, null))
+        .thenThrow(new CategoryNotFoundException(categoryId, "demo-mall"));
+
+    mockMvc
+        .perform(get("/api/v1/malls/demo-mall/places").param("categoryId", categoryId.toString()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("CATEGORY_NOT_FOUND"));
   }
 }

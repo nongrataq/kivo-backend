@@ -45,7 +45,7 @@ class CategoryControllerTest {
 
   @Test
   void returnsProblemDetailsForUnknownMall() throws Exception {
-    when(categoryQueryService.findCategories("unknown", "ru"))
+    when(categoryQueryService.findCategories("unknown", null))
         .thenThrow(new MallNotFoundException("unknown"));
 
     mockMvc
@@ -58,7 +58,7 @@ class CategoryControllerTest {
 
   @Test
   void localizesProblemDetailsFromAcceptLanguage() throws Exception {
-    when(categoryQueryService.findCategories("unknown", "ru"))
+    when(categoryQueryService.findCategories("unknown", null))
         .thenThrow(new MallNotFoundException("unknown"));
 
     mockMvc

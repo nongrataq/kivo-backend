@@ -8,8 +8,8 @@ import com.kivo.backend.catalog.persistence.entity.Mall;
 import com.kivo.backend.catalog.persistence.repository.CategoryRepository;
 import com.kivo.backend.catalog.persistence.repository.MallRepository;
 import com.kivo.backend.common.exception.service.MallNotFoundException;
+import com.kivo.backend.common.localization.LanguageResolver;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,7 +29,7 @@ public class CategoryQueryService {
         mallRepository
             .findByCodeAndActiveTrue(mallCode)
             .orElseThrow(() -> new MallNotFoundException(mallCode));
-    String language = requestedLanguage.toLowerCase(Locale.ROOT);
+    String language = LanguageResolver.resolve(requestedLanguage, mall.getDefaultLanguage());
 
     return categoryRepository.findActiveByMallCode(mallCode).stream()
         .map(category -> toResponse(category, language, mall.getDefaultLanguage()))
