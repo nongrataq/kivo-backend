@@ -76,6 +76,24 @@ class ArchitectureTest {
         .dependOnClassesThat()
         .resideInAPackage("..kiosks.persistence.repository..")
         .check(CLASSES);
+    noClasses()
+        .that()
+        .resideOutsideOfPackage("..navigation..")
+        .should()
+        .dependOnClassesThat()
+        .resideInAPackage("..navigation.persistence.repository..")
+        .check(CLASSES);
+  }
+
+  @Test
+  void navigationDomainIsIndependentOfFrameworkAndPersistence() {
+    noClasses()
+        .that()
+        .resideInAPackage("..navigation.domain..")
+        .should()
+        .dependOnClassesThat()
+        .resideInAnyPackage("org.springframework..", "jakarta.persistence..", "..persistence..")
+        .check(CLASSES);
   }
 
   @Test

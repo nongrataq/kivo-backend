@@ -1,5 +1,6 @@
 package com.kivo.backend.catalog.persistence.repository;
 
+import com.kivo.backend.catalog.application.port.RoutablePlaceReadModel;
 import com.kivo.backend.catalog.persistence.entity.Place;
 import java.util.Collection;
 import java.util.List;
@@ -11,6 +12,23 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface PlaceRepository extends JpaRepository<Place, UUID> {
+
+  @Query(
+      """
+      select new com.kivo.backend.catalog.application.port.RoutablePlaceReadModel(
+        place.code, place.navigationNodeCode)
+      from Place place
+      join place.mall mall
+      join place.floor floor
+      join place.category category
+      where mall.id = :mallId
+        and mall.active = true
+        and floor.active = true
+        and category.active = true
+        and place.active = true
+      order by place.displayOrder, place.code
+      """)
+  List<RoutablePlaceReadModel> findActiveRoutablePlaces(@Param("mallId") UUID mallId);
 
   @Query(
       """
