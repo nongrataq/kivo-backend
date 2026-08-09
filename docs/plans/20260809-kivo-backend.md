@@ -191,9 +191,9 @@ POST /api/v1/feedback
 
 **Файлы:** `catalog/**`, `maps/**`, `kiosks/**`, `V1__create_core_catalog.sql`, тесты.
 
-- [ ] создать Mall, Floor, Kiosk, Category, переводы и Place;
-- [ ] отделить persistence-сущности от API DTO;
-- [ ] добавить ограничения и индексы Flyway;
+- [x] создать Mall, Floor, Kiosk, Category, переводы и Place;
+- [x] отделить persistence-сущности от API DTO;
+- [x] добавить ограничения и индексы Flyway;
 - [ ] подготовить небольшой тестовый ТЦ;
 - [ ] протестировать persistence, fallback языка и ошибочные данные.
 

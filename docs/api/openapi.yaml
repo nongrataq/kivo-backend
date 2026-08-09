@@ -1,0 +1,77 @@
+openapi: 3.1.0
+info:
+  title: Kivo Backend API
+  version: 1.0.0
+  description: JSON API системы навигации Kivo.
+servers:
+  - url: /api/v1
+paths:
+  /malls/{mallCode}/categories:
+    get:
+      operationId: getCategories
+      summary: Получить активные категории торгового центра
+      parameters:
+        - name: mallCode
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - name: lang
+          in: query
+          required: false
+          description: Язык ответа. При отсутствии перевода используется язык ТЦ по умолчанию.
+          schema:
+            type: string
+            pattern: '^[a-z]{2,3}$'
+            default: ru
+      responses:
+        '200':
+          description: Категории в порядке отображения
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Торговый центр не найден
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+components:
+  schemas:
+    Category:
+      type: object
+      required: [id, code, name, displayOrder]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        displayOrder:
+          type: integer
+          format: int32
+    Problem:
+      type: object
+      required: [title, status, code]
+      properties:
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        code:
+          type: string
