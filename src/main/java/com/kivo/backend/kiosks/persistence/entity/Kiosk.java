@@ -11,7 +11,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
 
+@Setter
+@Getter
 @Entity
 @Table(name = "kiosk")
 public class Kiosk extends AbstractUuidEntity {
@@ -37,46 +41,6 @@ public class Kiosk extends AbstractUuidEntity {
   private boolean enabled = true;
 
   protected Kiosk() {}
-
-  public Mall getMall() {
-    return mall;
-  }
-
-  public void setMall(Mall mall) {
-    this.mall = mall;
-  }
-
-  public Floor getFloor() {
-    return floor;
-  }
-
-  public void setFloor(Floor floor) {
-    this.floor = floor;
-  }
-
-  public String getCode() {
-    return code;
-  }
-
-  public void setCode(String code) {
-    this.code = code;
-  }
-
-  public String getStartNavigationNodeCode() {
-    return startNavigationNodeCode;
-  }
-
-  public void setStartNavigationNodeCode(String startNavigationNodeCode) {
-    this.startNavigationNodeCode = startNavigationNodeCode;
-  }
-
-  public boolean isEnabled() {
-    return enabled;
-  }
-
-  public void setEnabled(boolean enabled) {
-    this.enabled = enabled;
-  }
 
   @Override
   public String toString() {

@@ -12,8 +12,13 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 
+@Setter
+@Getter
 @Entity
 @Table(name = "floor")
 public class Floor extends AbstractUuidEntity {
@@ -58,86 +63,6 @@ public class Floor extends AbstractUuidEntity {
   private boolean active = true;
 
   protected Floor() {}
-
-  public Mall getMall() {
-    return mall;
-  }
-
-  public void setMall(Mall mall) {
-    this.mall = mall;
-  }
-
-  public String getCode() {
-    return code;
-  }
-
-  public void setCode(String code) {
-    this.code = code;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public int getLevelNumber() {
-    return levelNumber;
-  }
-
-  public void setLevelNumber(int levelNumber) {
-    this.levelNumber = levelNumber;
-  }
-
-  public int getDisplayOrder() {
-    return displayOrder;
-  }
-
-  public void setDisplayOrder(int displayOrder) {
-    this.displayOrder = displayOrder;
-  }
-
-  public String getMapUrl() {
-    return mapUrl;
-  }
-
-  public void setMapUrl(String mapUrl) {
-    this.mapUrl = mapUrl;
-  }
-
-  public int getCoordinateWidth() {
-    return coordinateWidth;
-  }
-
-  public void setCoordinateWidth(int coordinateWidth) {
-    this.coordinateWidth = coordinateWidth;
-  }
-
-  public int getCoordinateHeight() {
-    return coordinateHeight;
-  }
-
-  public void setCoordinateHeight(int coordinateHeight) {
-    this.coordinateHeight = coordinateHeight;
-  }
-
-  public BigDecimal getMetersPerUnit() {
-    return metersPerUnit;
-  }
-
-  public void setMetersPerUnit(BigDecimal metersPerUnit) {
-    this.metersPerUnit = metersPerUnit;
-  }
-
-  public boolean isActive() {
-    return active;
-  }
-
-  public void setActive(boolean active) {
-    this.active = active;
-  }
 
   @Override
   public String toString() {

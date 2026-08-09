@@ -7,8 +7,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
 import java.util.Objects;
 import java.util.UUID;
+
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.proxy.HibernateProxy;
 
+@Getter
+@Setter
 @MappedSuperclass
 public abstract class AbstractUuidEntity {
 
@@ -16,14 +21,6 @@ public abstract class AbstractUuidEntity {
   @GeneratedValue(strategy = GenerationType.UUID)
   @Column(name = "id", nullable = false, updatable = false)
   private UUID id;
-
-  public UUID getId() {
-    return id;
-  }
-
-  public final void setId(UUID id) {
-    this.id = id;
-  }
 
   @Override
   public final boolean equals(Object object) {

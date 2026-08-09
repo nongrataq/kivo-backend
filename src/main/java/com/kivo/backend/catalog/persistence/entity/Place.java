@@ -12,14 +12,21 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
+@Getter
+@Setter
 @Table(name = "place")
 public class Place extends AbstractUuidEntity {
 
+  @Setter
+  @Getter
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "mall_id", nullable = false)
   private Mall mall;
@@ -55,62 +62,6 @@ public class Place extends AbstractUuidEntity {
   private Set<PlaceTranslation> translations = new LinkedHashSet<>();
 
   protected Place() {}
-
-  public Mall getMall() {
-    return mall;
-  }
-
-  public void setMall(Mall mall) {
-    this.mall = mall;
-  }
-
-  public Floor getFloor() {
-    return floor;
-  }
-
-  public void setFloor(Floor floor) {
-    this.floor = floor;
-  }
-
-  public Category getCategory() {
-    return category;
-  }
-
-  public void setCategory(Category category) {
-    this.category = category;
-  }
-
-  public String getCode() {
-    return code;
-  }
-
-  public void setCode(String code) {
-    this.code = code;
-  }
-
-  public String getNavigationNodeCode() {
-    return navigationNodeCode;
-  }
-
-  public void setNavigationNodeCode(String navigationNodeCode) {
-    this.navigationNodeCode = navigationNodeCode;
-  }
-
-  public int getDisplayOrder() {
-    return displayOrder;
-  }
-
-  public void setDisplayOrder(int displayOrder) {
-    this.displayOrder = displayOrder;
-  }
-
-  public boolean isActive() {
-    return active;
-  }
-
-  public void setActive(boolean active) {
-    this.active = active;
-  }
 
   public Set<PlaceTranslation> getTranslations() {
     return Collections.unmodifiableSet(translations);

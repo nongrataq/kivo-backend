@@ -11,11 +11,16 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
+@Getter
+@Setter
 @Table(name = "category")
 public class Category extends AbstractUuidEntity {
 
@@ -42,38 +47,6 @@ public class Category extends AbstractUuidEntity {
   private Set<CategoryTranslation> translations = new LinkedHashSet<>();
 
   protected Category() {}
-
-  public Mall getMall() {
-    return mall;
-  }
-
-  public void setMall(Mall mall) {
-    this.mall = mall;
-  }
-
-  public String getCode() {
-    return code;
-  }
-
-  public void setCode(String code) {
-    this.code = code;
-  }
-
-  public int getDisplayOrder() {
-    return displayOrder;
-  }
-
-  public void setDisplayOrder(int displayOrder) {
-    this.displayOrder = displayOrder;
-  }
-
-  public boolean isActive() {
-    return active;
-  }
-
-  public void setActive(boolean active) {
-    this.active = active;
-  }
 
   public Set<CategoryTranslation> getTranslations() {
     return Collections.unmodifiableSet(translations);
