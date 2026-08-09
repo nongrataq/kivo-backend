@@ -47,6 +47,62 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /malls/{mallCode}/places:
+    get:
+      operationId: getPlaces
+      summary: Найти активные места торгового центра
+      parameters:
+        - name: mallCode
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - name: q
+          in: query
+          required: false
+          description: Поиск по коду, названию или описанию места.
+          schema:
+            type: string
+            maxLength: 100
+        - name: categoryId
+          in: query
+          required: false
+          description: Фильтр по идентификатору категории.
+          schema:
+            type: string
+            format: uuid
+        - name: lang
+          in: query
+          required: false
+          description: Язык ответа. При отсутствии перевода используется язык ТЦ по умолчанию.
+          schema:
+            type: string
+            pattern: '^[a-z]{2,3}$'
+            default: ru
+      responses:
+        '200':
+          description: Не более 100 мест в порядке отображения
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 100
+                items:
+                  $ref: '#/components/schemas/Place'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Торговый центр не найден
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
   schemas:
     Category:
@@ -60,6 +116,33 @@ components:
           type: string
         name:
           type: string
+        displayOrder:
+          type: integer
+          format: int32
+    Place:
+      type: object
+      required: [id, code, name, categoryId, floorCode, displayOrder]
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type:
+            - string
+            - 'null'
+        categoryId:
+          type: string
+          format: uuid
+        floorCode:
+          type: string
+        navigationNodeCode:
+          type:
+            - string
+            - 'null'
         displayOrder:
           type: integer
           format: int32
