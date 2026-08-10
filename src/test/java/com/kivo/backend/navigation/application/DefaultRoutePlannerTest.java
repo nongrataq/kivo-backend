@@ -25,12 +25,15 @@ class DefaultRoutePlannerTest {
   @Test
   void plansAgainstCurrentlyActiveSnapshot() {
     InMemoryActiveGraphRegistry registry = new InMemoryActiveGraphRegistry();
-    registry.replace(snapshot());
+    GraphSnapshot snapshot = snapshot();
+    registry.replace(snapshot);
     RoutePlanner planner =
         new DefaultRoutePlanner(registry, new AStarShortestPath(), RoutingCostPolicy.defaults());
 
-    var route = planner.plan(MALL_ID, "start", "target", MovementProfile.STANDARD);
+    var planned = planner.planWithSnapshot(MALL_ID, "start", "target", MovementProfile.STANDARD);
+    var route = planned.route();
 
+    assertThat(planned.snapshot()).isSameAs(snapshot);
     assertThat(route.mallId()).isEqualTo(MALL_ID);
     assertThat(route.graphVersionId()).isEqualTo(VERSION_ID);
     assertThat(route.steps()).singleElement().extracting(step -> step.edgeCode()).isEqualTo("edge");

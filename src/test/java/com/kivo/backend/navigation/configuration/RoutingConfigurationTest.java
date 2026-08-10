@@ -3,6 +3,7 @@ package com.kivo.backend.navigation.configuration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.kivo.backend.navigation.domain.routing.RoutingCostPolicy;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
@@ -28,6 +29,22 @@ class RoutingConfigurationTest {
               assertThat(costs.stairsPenaltySeconds()).isEqualTo(30.0);
               assertThat(costs.escalatorPenaltySeconds()).isEqualTo(12.0);
               assertThat(costs.elevatorPenaltySeconds()).isEqualTo(50.0);
+            });
+  }
+
+  @Test
+  void bindsRouteLifecycleAndOverlaySafetyLimits() {
+    contextRunner
+        .withPropertyValues(
+            "kivo.navigation.routes.ttl=5m",
+            "kivo.navigation.routes.maximum-size=25",
+            "kivo.navigation.routes.overlay-max-dimension=512")
+        .run(
+            context -> {
+              RouteDeliveryProperties properties = context.getBean(RouteDeliveryProperties.class);
+              assertThat(properties.getTtl()).isEqualTo(Duration.ofMinutes(5));
+              assertThat(properties.getMaximumSize()).isEqualTo(25);
+              assertThat(properties.getOverlayMaxDimension()).isEqualTo(512);
             });
   }
 }

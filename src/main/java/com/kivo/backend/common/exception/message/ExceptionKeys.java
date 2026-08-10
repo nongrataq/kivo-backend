@@ -8,8 +8,14 @@ public final class ExceptionKeys {
   public static final String KIOSK_NOT_FOUND_BY_CODE = "exception.kiosk.notFoundByCode";
   public static final String MALL_NOT_FOUND_BY_CODE = "exception.mall.notFoundByCode";
   public static final String PLACE_NOT_FOUND_BY_ID = "exception.place.notFoundById";
+  public static final String ROUTE_ENDPOINT_MISMATCH = "exception.route.endpointMismatch";
+  public static final String ROUTE_FLOOR_NOT_FOUND = "exception.route.floorNotFound";
+  public static final String ROUTE_NOT_FOUND = "exception.route.notFound";
+  public static final String NAVIGATION_GRAPH_UNAVAILABLE = "exception.navigation.graphUnavailable";
   public static final String TITLE_INTERNAL = "exception.title.internal";
   public static final String TITLE_NOT_FOUND = "exception.title.notFound";
+  public static final String TITLE_UNAVAILABLE = "exception.title.unavailable";
+  public static final String TITLE_UNPROCESSABLE = "exception.title.unprocessable";
   public static final String TITLE_VALIDATION = "exception.title.validation";
   public static final String VALIDATION_DEFAULT = "validation.default";
   public static final String VALIDATION_INVALID_JSON = "validation.invalidJson";

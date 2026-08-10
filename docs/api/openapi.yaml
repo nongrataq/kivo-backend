@@ -169,6 +169,176 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /routes:
+    post:
+      operationId: createRoute
+      summary: Построить и временно сохранить маршрут от киоска до места
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoute'
+            example:
+              kioskCode: demo-kiosk
+              placeId: 00000000-0000-0000-0000-000000000401
+              profile: STANDARD
+      responses:
+        '201':
+          description: Маршрут создан
+          headers:
+            Location:
+              description: URL созданного маршрута
+              schema:
+                type: string
+                format: uri-reference
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Route'
+              example:
+                routeId: 73000000-0000-0000-0000-000000000001
+                kioskCode: demo-kiosk
+                placeId: 00000000-0000-0000-0000-000000000401
+                profile: STANDARD
+                totalDistanceMeters: 20.00
+                estimatedDurationSeconds: 15
+                createdAt: '2026-08-10T10:00:00Z'
+                expiresAt: '2026-08-10T10:30:00Z'
+                instructions:
+                  - sequence: 0
+                    type: START
+                    floorCode: L1
+                    targetFloorCode: null
+                    movementType: null
+                    distanceMeters: null
+                  - sequence: 1
+                    type: CONTINUE
+                    floorCode: L1
+                    targetFloorCode: null
+                    movementType: CORRIDOR
+                    distanceMeters: 20.00
+                  - sequence: 2
+                    type: ARRIVE
+                    floorCode: L1
+                    targetFloorCode: null
+                    movementType: null
+                    distanceMeters: null
+                overlays:
+                  - floorCode: L1
+                    displayOrder: 10
+                    imageUrl: /api/v1/routes/73000000-0000-0000-0000-000000000001/floors/L1/overlay.png
+                    pixelWidth: 2048
+                    pixelHeight: 2048
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: Киоск, место или допустимый маршрут не найдены
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Киоск и место принадлежат разным торговым центрам
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: Активный навигационный граф недоступен
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /routes/{routeId}:
+    get:
+      operationId: getRoute
+      summary: Получить временный маршрут
+      parameters:
+        - $ref: '#/components/parameters/RouteId'
+      responses:
+        '200':
+          description: Сохранённый маршрут
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Route'
+              example:
+                routeId: 73000000-0000-0000-0000-000000000001
+                kioskCode: demo-kiosk
+                placeId: 00000000-0000-0000-0000-000000000401
+                profile: STANDARD
+                totalDistanceMeters: 20.00
+                estimatedDurationSeconds: 15
+                createdAt: '2026-08-10T10:00:00Z'
+                expiresAt: '2026-08-10T10:30:00Z'
+                instructions:
+                  - sequence: 0
+                    type: START
+                    floorCode: L1
+                    targetFloorCode: null
+                    movementType: null
+                    distanceMeters: null
+                  - sequence: 1
+                    type: CONTINUE
+                    floorCode: L1
+                    targetFloorCode: null
+                    movementType: CORRIDOR
+                    distanceMeters: 20.00
+                  - sequence: 2
+                    type: ARRIVE
+                    floorCode: L1
+                    targetFloorCode: null
+                    movementType: null
+                    distanceMeters: null
+                overlays:
+                  - floorCode: L1
+                    displayOrder: 10
+                    imageUrl: /api/v1/routes/73000000-0000-0000-0000-000000000001/floors/L1/overlay.png
+                    pixelWidth: 2048
+                    pixelHeight: 2048
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: Маршрут не найден, истёк или был вытеснен из временного хранилища
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /routes/{routeId}/floors/{floorCode}/overlay.png:
+    get:
+      operationId: getRouteOverlay
+      summary: Получить прозрачный PNG-слой маршрута для этажа
+      parameters:
+        - $ref: '#/components/parameters/RouteId'
+        - name: floorCode
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 32
+      responses:
+        '200':
+          description: Прозрачный PNG-слой
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: no-store
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: Маршрут или этаж маршрута не найдены
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
   parameters:
     MallCode:
@@ -189,6 +359,13 @@ components:
       schema:
         type: string
         pattern: '^[a-z]{2,3}$'
+    RouteId:
+      name: routeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   responses:
     ValidationError:
       description: Ошибка валидации параметров
@@ -306,6 +483,119 @@ components:
         displayOrder:
           type: integer
           format: int32
+    CreateRoute:
+      type: object
+      required: [kioskCode, placeId]
+      properties:
+        kioskCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        placeId:
+          type: string
+          format: uuid
+        profile:
+          $ref: '#/components/schemas/MovementProfile'
+    MovementProfile:
+      type: string
+      enum: [STANDARD, ACCESSIBLE]
+      default: STANDARD
+    Route:
+      type: object
+      required:
+        - routeId
+        - kioskCode
+        - placeId
+        - profile
+        - totalDistanceMeters
+        - estimatedDurationSeconds
+        - createdAt
+        - expiresAt
+        - instructions
+        - overlays
+      properties:
+        routeId:
+          type: string
+          format: uuid
+        kioskCode:
+          type: string
+        placeId:
+          type: string
+          format: uuid
+        profile:
+          $ref: '#/components/schemas/MovementProfile'
+        totalDistanceMeters:
+          type: number
+          minimum: 0
+          multipleOf: 0.01
+        estimatedDurationSeconds:
+          type: integer
+          format: int64
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        instructions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteInstruction'
+        overlays:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteOverlay'
+    RouteInstruction:
+      type: object
+      required:
+        - sequence
+        - type
+        - floorCode
+        - targetFloorCode
+        - movementType
+        - distanceMeters
+      properties:
+        sequence:
+          type: integer
+          format: int32
+          minimum: 0
+        type:
+          type: string
+          enum: [START, CONTINUE, TRANSITION, ARRIVE]
+        floorCode:
+          type: string
+        targetFloorCode:
+          type: [string, 'null']
+        movementType:
+          type: [string, 'null']
+          enum: [CORRIDOR, STAIRS, ESCALATOR, ELEVATOR, null]
+        distanceMeters:
+          type: [number, 'null']
+          minimum: 0
+          multipleOf: 0.01
+    RouteOverlay:
+      type: object
+      required: [floorCode, displayOrder, imageUrl, pixelWidth, pixelHeight]
+      properties:
+        floorCode:
+          type: string
+        displayOrder:
+          type: integer
+          format: int32
+        imageUrl:
+          type: string
+          format: uri-reference
+        pixelWidth:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 2048
+        pixelHeight:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 2048
     Problem:
       type: object
       required: [title, status, code]
