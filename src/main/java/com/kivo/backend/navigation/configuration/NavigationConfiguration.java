@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(RoutingProperties.class)
+@EnableConfigurationProperties({RoutingProperties.class, RouteDeliveryProperties.class})
 public class NavigationConfiguration {
 
   @Bean

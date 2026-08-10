@@ -2,7 +2,9 @@ package com.kivo.backend.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.kivo.backend.catalog.application.query.CategoryResponse;
@@ -10,8 +12,16 @@ import com.kivo.backend.catalog.application.query.PlaceResponse;
 import com.kivo.backend.kiosks.application.query.KioskBootstrapResponse;
 import com.kivo.backend.kiosks.application.query.KioskBootstrapResponse.FloorResponse;
 import com.kivo.backend.kiosks.application.query.KioskBootstrapResponse.LanguageResponse;
+import com.kivo.backend.navigation.api.RouteInstructionResponse;
+import com.kivo.backend.navigation.api.RouteOverlayResponse;
+import com.kivo.backend.navigation.api.RouteResponse;
+import com.kivo.backend.navigation.domain.model.MovementType;
+import com.kivo.backend.navigation.domain.routing.InstructionType;
+import com.kivo.backend.navigation.domain.routing.MovementProfile;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -20,8 +30,13 @@ class OpenApiExampleSerializationTest {
 
   private static final UUID CATEGORY_ID = UUID.fromString("00000000-0000-0000-0000-000000000101");
   private static final UUID PLACE_ID = UUID.fromString("00000000-0000-0000-0000-000000000401");
+  private static final UUID ROUTE_ID = UUID.fromString("73000000-0000-0000-0000-000000000001");
 
-  private final JsonMapper jsonMapper = JsonMapper.builder().findAndAddModules().build();
+  private final JsonMapper jsonMapper =
+      JsonMapper.builder()
+          .findAndAddModules()
+          .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
+          .build();
   private final JsonNode openApi = readOpenApi();
 
   @Test
@@ -65,20 +80,63 @@ class OpenApiExampleSerializationTest {
     assertThat(placeJson.has("navigationNodeCode")).isFalse();
   }
 
+  @Test
+  void routeExamplesMatchJacksonAndKeepCollectionItemsFlat() {
+    var response =
+        new RouteResponse(
+            ROUTE_ID,
+            "demo-kiosk",
+            PLACE_ID,
+            MovementProfile.STANDARD,
+            new BigDecimal("20.00"),
+            15,
+            Instant.parse("2026-08-10T10:00:00Z"),
+            Instant.parse("2026-08-10T10:30:00Z"),
+            List.of(
+                new RouteInstructionResponse(0, InstructionType.START, "L1", null, null, null),
+                new RouteInstructionResponse(
+                    1,
+                    InstructionType.CONTINUE,
+                    "L1",
+                    null,
+                    MovementType.CORRIDOR,
+                    new BigDecimal("20.00")),
+                new RouteInstructionResponse(2, InstructionType.ARRIVE, "L1", null, null, null)),
+            List.of(
+                new RouteOverlayResponse(
+                    "L1",
+                    10,
+                    "/api/v1/routes/73000000-0000-0000-0000-000000000001/floors/L1/overlay.png",
+                    2048,
+                    2048)));
+
+    JsonNode created = assertExample("/routes", "post", "201", response);
+    JsonNode fetched = assertExample("/routes/{routeId}", "get", "200", response);
+
+    assertThat(created).isEqualTo(fetched);
+    created.path("instructions").forEach(this::assertFlatObject);
+    created.path("overlays").forEach(this::assertFlatObject);
+    assertThat(created.toString()).doesNotContain("nodeCode", "geometry", "polylines");
+  }
+
   private JsonNode assertExample(String path, Object response) {
+    return assertExample(path, "get", "200", response);
+  }
+
+  private JsonNode assertExample(String path, String method, String status, Object response) {
     JsonNode actual = jsonMapper.valueToTree(response);
     JsonNode documented =
         openApi
             .path("paths")
             .path(path)
-            .path("get")
+            .path(method)
             .path("responses")
-            .path("200")
+            .path(status)
             .path("content")
             .path("application/json")
             .path("example");
     assertThat(documented.isMissingNode()).isFalse();
-    assertThat(actual).isEqualTo(documented);
+    assertThat(actual.toString()).isEqualTo(documented.toString());
     return actual;
   }
 
@@ -89,7 +147,10 @@ class OpenApiExampleSerializationTest {
 
   private JsonNode readOpenApi() {
     try {
-      return new YAMLMapper().readTree(Path.of("docs", "api", "openapi.yaml").toFile());
+      return YAMLMapper.builder()
+          .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+          .build()
+          .readTree(Path.of("docs", "api", "openapi.yaml").toFile());
     } catch (IOException exception) {
       throw new IllegalStateException("Cannot read OpenAPI document", exception);
     }

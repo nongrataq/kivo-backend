@@ -18,10 +18,12 @@ public class DefaultRoutePlanner implements RoutePlanner {
   private final RoutingCostPolicy routingCostPolicy;
 
   @Override
-  public RouteResult plan(
+  public PlannedRoute planWithSnapshot(
       UUID mallId, String startNodeCode, String destinationNodeCode, MovementProfile profile) {
     var snapshot = activeGraphProvider.getRequired(mallId);
     var request = new RouteRequest(startNodeCode, destinationNodeCode, profile);
-    return shortestPathAlgorithm.findRoute(snapshot, request, routingCostPolicy).route();
+    RouteResult route =
+        shortestPathAlgorithm.findRoute(snapshot, request, routingCostPolicy).route();
+    return new PlannedRoute(route, snapshot);
   }
 }

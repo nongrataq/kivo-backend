@@ -6,6 +6,11 @@ import java.util.UUID;
 
 public interface RoutePlanner {
 
-  RouteResult plan(
+  PlannedRoute planWithSnapshot(
       UUID mallId, String startNodeCode, String destinationNodeCode, MovementProfile profile);
+
+  default RouteResult plan(
+      UUID mallId, String startNodeCode, String destinationNodeCode, MovementProfile profile) {
+    return planWithSnapshot(mallId, startNodeCode, destinationNodeCode, profile).route();
+  }
 }

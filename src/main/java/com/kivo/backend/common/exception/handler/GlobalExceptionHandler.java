@@ -3,6 +3,8 @@ package com.kivo.backend.common.exception.handler;
 import static com.kivo.backend.common.exception.message.ExceptionKeys.INTERNAL;
 import static com.kivo.backend.common.exception.message.ExceptionKeys.TITLE_INTERNAL;
 import static com.kivo.backend.common.exception.message.ExceptionKeys.TITLE_NOT_FOUND;
+import static com.kivo.backend.common.exception.message.ExceptionKeys.TITLE_UNAVAILABLE;
+import static com.kivo.backend.common.exception.message.ExceptionKeys.TITLE_UNPROCESSABLE;
 import static com.kivo.backend.common.exception.message.ExceptionKeys.TITLE_VALIDATION;
 import static com.kivo.backend.common.exception.message.ExceptionKeys.VALIDATION_DEFAULT;
 import static com.kivo.backend.common.exception.message.ExceptionKeys.VALIDATION_INVALID_JSON;
@@ -152,7 +154,13 @@ public class GlobalExceptionHandler {
   }
 
   private String titleFor(HttpStatus status, Locale locale) {
-    String key = status == HttpStatus.NOT_FOUND ? TITLE_NOT_FOUND : status.getReasonPhrase();
+    String key =
+        switch (status) {
+          case NOT_FOUND -> TITLE_NOT_FOUND;
+          case SERVICE_UNAVAILABLE -> TITLE_UNAVAILABLE;
+          case UNPROCESSABLE_CONTENT -> TITLE_UNPROCESSABLE;
+          default -> status.getReasonPhrase();
+        };
     return exceptionsMessageSource.getMessage(key, null, key, locale);
   }
 
