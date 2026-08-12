@@ -44,8 +44,7 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
         and place.active = true
         and (:categoryId is null or category.id = :categoryId)
         and (
-          :query is null
-          or lower(place.code) like concat('%', lower(:query), '%')
+          lower(place.code) like concat('%', lower(:query), '%')
           or exists (
             select translation.id
             from PlaceTranslation translation
@@ -63,6 +62,24 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
       @Param("query") String query,
       @Param("categoryId") UUID categoryId,
       Pageable pageable);
+
+  @Query(
+      """
+      select place.id
+      from Place place
+      join place.mall mall
+      join place.floor floor
+      join place.category category
+      where mall.code = :mallCode
+        and mall.active = true
+        and floor.active = true
+        and category.active = true
+        and place.active = true
+        and (:categoryId is null or category.id = :categoryId)
+      order by place.displayOrder, place.code
+      """)
+  List<UUID> findActiveIds(
+      @Param("mallCode") String mallCode, @Param("categoryId") UUID categoryId, Pageable pageable);
 
   @Query(
       """
