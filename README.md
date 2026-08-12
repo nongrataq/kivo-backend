@@ -47,6 +47,35 @@ docker compose up -d
 Интеграционные тесты поднимают чистый PostgreSQL 17 через Testcontainers и применяют все миграции
 Flyway. Поэтому для полного quality gate должен быть запущен Docker Desktop.
 
+## Локальная демонстрация navigation-core MVP
+
+Профиль `demo` использует отдельную схему PostgreSQL `kivo_demo`, применяет основные миграции и
+добавляет демонстрационный ТЦ, этаж, киоск, два места и опубликованный навигационный граф. Эти
+данные не попадают в production-профиль.
+
+```powershell
+docker compose up -d postgres
+.\gradlew.bat bootRun --args='--spring.profiles.active=demo'
+```
+
+После запуска можно пройти основной сценарий:
+
+```powershell
+$bootstrap = Invoke-RestMethod 'http://localhost:8080/api/v1/kiosks/demo-kiosk/bootstrap?lang=ru'
+$places = Invoke-RestMethod 'http://localhost:8080/api/v1/malls/demo-mall/places?lang=ru'
+$route = Invoke-RestMethod -Method Post `
+  -Uri 'http://localhost:8080/api/v1/routes' `
+  -ContentType 'application/json' `
+  -Body '{"kioskCode":"demo-kiosk","placeId":"00000000-0000-0000-0000-000000000401"}'
+Invoke-WebRequest `
+  -Uri ("http://localhost:8080{0}" -f $route.overlays[0].imageUrl) `
+  -OutFile 'route-overlay.png'
+```
+
+Базовый план этажа доступен по адресу `http://localhost:8080/demo/maps/L1.svg`. Профиль создаёт
+схему автоматически; для другой demo-БД задайте `DEMO_DB_URL`, `DEMO_DB_USERNAME` и
+`DEMO_DB_PASSWORD`.
+
 ## Реализованный API
 
 ```text
@@ -54,6 +83,9 @@ GET /api/v1/kiosks/{kioskCode}/bootstrap?lang=
 GET /api/v1/malls/{mallCode}/categories?lang=
 GET /api/v1/malls/{mallCode}/places?q=&categoryId=&lang=
 GET /api/v1/places/{placeId}?lang=
+POST /api/v1/routes
+GET /api/v1/routes/{routeId}
+GET /api/v1/routes/{routeId}/floors/{floorCode}/overlay.png
 ```
 
 `lang` необязателен: без него используется язык ТЦ по умолчанию. Ответы не содержат внутренних
