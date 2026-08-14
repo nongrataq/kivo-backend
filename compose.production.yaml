@@ -1,0 +1,82 @@
+name: kivo-production
+
+services:
+  postgres:
+    image: postgres:17.10-alpine3.24@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${KIVO_DB_NAME:-kivo}
+      POSTGRES_USER: ${KIVO_DB_USERNAME:-kivo}
+      POSTGRES_PASSWORD_FILE: /run/secrets/kivo_db_password
+    secrets:
+      - kivo_db_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - kivo-postgres-data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  app:
+    image: ${KIVO_IMAGE:?Set KIVO_IMAGE to the tested Kivo image}
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      SPRING_CONFIG_IMPORT: optional:configtree:/run/secrets/
+      DB_URL: jdbc:postgresql://postgres:5432/${KIVO_DB_NAME:-kivo}
+      DB_USERNAME: ${KIVO_DB_USERNAME:-kivo}
+      PUBLIC_BASE_URL: ${KIVO_PUBLIC_BASE_URL:?Set KIVO_PUBLIC_BASE_URL to the public HTTPS origin}
+      JAVA_TOOL_OPTIONS: ${KIVO_JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError}
+    secrets:
+      - source: kivo_db_password
+        target: spring.datasource.password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "8080"
+    networks:
+      - backend
+
+  proxy:
+    image: caddy:2.11.2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d
+    restart: unless-stopped
+    environment:
+      KIVO_PUBLIC_HOST: ${KIVO_PUBLIC_HOST:-localhost}
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${KIVO_HTTPS_PORT:-8443}:443"
+    volumes:
+      - ./deployment/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - kivo-caddy-data:/data
+      - kivo-caddy-config:/config
+    networks:
+      - edge
+      - backend
+
+secrets:
+  kivo_db_password:
+    file: ${KIVO_DB_PASSWORD_FILE:?Set KIVO_DB_PASSWORD_FILE to a runtime-provided secret file}
+
+networks:
+  edge:
+  backend:
+    internal: true
+
+volumes:
+  kivo-postgres-data:
+  kivo-caddy-data:
+  kivo-caddy-config:
