@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.kivo.backend.testsupport.PostgreSqlIntegrationTest;
+import java.net.URI;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,6 +88,37 @@ class DemoProfileIntegrationTest extends PostgreSqlIntegrationTest {
             .getResponse()
             .getContentAsByteArray();
     assertThat(png).startsWith((byte) 0x89, (byte) 0x50, (byte) 0x4e, (byte) 0x47);
+
+    String shareResponse =
+        mockMvc
+            .perform(post("/api/v1/routes/{routeId}/share", routeId))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.shareId").isString())
+            .andExpect(jsonPath("$.routeUrl").isString())
+            .andExpect(jsonPath("$.qrImageUrl").isString())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    URI routeUrl =
+        URI.create(JsonMapper.builder().build().readTree(shareResponse).path("routeUrl").asText());
+    String shareToken = routeUrl.getPath().substring(routeUrl.getPath().lastIndexOf('/') + 1);
+
+    mockMvc
+        .perform(get("/api/v1/public/routes/{shareToken}", shareToken))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.routeId").value(routeId.toString()))
+        .andExpect(jsonPath("$.mallId").value("00000000-0000-0000-0000-000000000001"))
+        .andExpect(jsonPath("$.overlays[0].mapImageUrl").value("/demo/maps/L1.svg"));
+
+    byte[] qrPng =
+        mockMvc
+            .perform(get("/api/v1/public/routes/{shareToken}/qr.png", shareToken))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType("image/png"))
+            .andReturn()
+            .getResponse()
+            .getContentAsByteArray();
+    assertThat(qrPng).startsWith((byte) 0x89, (byte) 0x50, (byte) 0x4e, (byte) 0x47);
 
     mockMvc
         .perform(get("/demo/maps/L1.svg"))

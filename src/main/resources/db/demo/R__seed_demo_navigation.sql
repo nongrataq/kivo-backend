@@ -1,3 +1,32 @@
+-- Repeatable demo data may evolve independently from the production schema.
+-- Remove only the deterministic demo mall before recreating its complete dataset.
+delete from shared_route
+where mall_id = '00000000-0000-0000-0000-000000000001';
+
+delete from navigation_graph_publication
+where mall_id = '00000000-0000-0000-0000-000000000001';
+
+delete from navigation_graph_version
+where mall_id = '00000000-0000-0000-0000-000000000001';
+
+delete from kiosk
+where mall_id = '00000000-0000-0000-0000-000000000001';
+
+delete from place
+where mall_id = '00000000-0000-0000-0000-000000000001';
+
+delete from category
+where mall_id = '00000000-0000-0000-0000-000000000001';
+
+delete from floor
+where mall_id = '00000000-0000-0000-0000-000000000001';
+
+delete from mall_language
+where mall_id = '00000000-0000-0000-0000-000000000001';
+
+delete from mall
+where id = '00000000-0000-0000-0000-000000000001';
+
 insert into mall (id, code, name, default_language, timezone, active, created_at)
 values ('00000000-0000-0000-0000-000000000001',
         'demo-mall',

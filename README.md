@@ -70,6 +70,14 @@ $route = Invoke-RestMethod -Method Post `
 Invoke-WebRequest `
   -Uri ("http://localhost:8080{0}" -f $route.overlays[0].imageUrl) `
   -OutFile 'route-overlay.png'
+$share = Invoke-RestMethod -Method Post `
+  -Uri ("http://localhost:8080/api/v1/routes/{0}/share" -f $route.routeId)
+$shareToken = ([uri]$share.routeUrl).Segments[-1]
+Invoke-WebRequest `
+  -Uri $share.qrImageUrl `
+  -OutFile 'route-qr.png'
+$publicRoute = Invoke-RestMethod `
+  ("http://localhost:8080/api/v1/public/routes/{0}" -f $shareToken)
 ```
 
 Базовый план этажа доступен по адресу `http://localhost:8080/demo/maps/L1.svg`. Профиль создаёт
@@ -86,6 +94,11 @@ GET /api/v1/places/{placeId}?lang=
 POST /api/v1/routes
 GET /api/v1/routes/{routeId}
 GET /api/v1/routes/{routeId}/floors/{floorCode}/overlay.png
+POST /api/v1/routes/{routeId}/share
+GET /api/v1/public/routes/{shareToken}
+GET /api/v1/public/routes/{shareToken}/qr.png
+GET /api/v1/public/routes/{shareToken}/floors/{floorCode}/overlay.png
+GET /r/{shareToken}
 ```
 
 `lang` необязателен: без него используется язык ТЦ по умолчанию. Ответы не содержат внутренних
