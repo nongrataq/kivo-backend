@@ -44,9 +44,11 @@ public class PlaceQueryService {
     }
     String language = LanguageResolver.resolve(requestedLanguage, mall.getDefaultLanguage());
     String normalizedQuery = normalizeQuery(query);
+    PageRequest page = PageRequest.of(0, MAX_RESULTS);
     List<UUID> placeIds =
-        placeRepository.searchActiveIds(
-            mallCode, normalizedQuery, categoryId, PageRequest.of(0, MAX_RESULTS));
+        normalizedQuery == null
+            ? placeRepository.findActiveIds(mallCode, categoryId, page)
+            : placeRepository.searchActiveIds(mallCode, normalizedQuery, categoryId, page);
 
     if (placeIds.isEmpty()) {
       return List.of();

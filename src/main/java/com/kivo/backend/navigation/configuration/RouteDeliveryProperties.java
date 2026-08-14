@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.time.Duration;
-
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -24,5 +23,4 @@ public class RouteDeliveryProperties {
   @Min(1)
   @Max(2048)
   private int overlayMaxDimension = 2048;
-
 }
