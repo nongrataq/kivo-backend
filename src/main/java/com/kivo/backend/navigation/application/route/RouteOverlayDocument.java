@@ -10,6 +10,7 @@ public record RouteOverlayDocument(
     UUID floorId,
     String floorCode,
     int displayOrder,
+    String mapImageUrl,
     String imageUrl,
     int coordinateWidth,
     int coordinateHeight,

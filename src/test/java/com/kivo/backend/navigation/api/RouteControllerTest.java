@@ -181,6 +181,7 @@ class RouteControllerTest {
                 UUID.randomUUID(),
                 "L1",
                 10,
+                "https://maps.example/L1.png",
                 "/api/v1/routes/" + ROUTE_ID + "/floors/L1/overlay.png",
                 10000,
                 10000,

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kivo — маршрут</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f4f7fb; color: #172033; }
+    main { width: min(100%, 760px); margin: 0 auto; padding: 20px 16px 48px; }
+    header, section { background: #fff; border-radius: 18px; box-shadow: 0 8px 28px #17203312; }
+    header { padding: 22px; margin-bottom: 16px; }
+    h1, h2 { margin: 0; }
+    h1 { font-size: 1.6rem; }
+    h2 { font-size: 1.1rem; margin-bottom: 12px; }
+    #summary { margin-top: 10px; color: #526078; }
+    section { padding: 16px; margin-top: 16px; }
+    .map { position: relative; overflow: hidden; border: 1px solid #dbe3ef; border-radius: 12px; background: #f8fafc; }
+    .map img { display: block; width: 100%; height: 100%; object-fit: contain; }
+    .map img.overlay { position: absolute; inset: 0; }
+    ol { margin: 0; padding-left: 24px; }
+    li { padding: 7px 0; }
+    .error { color: #b42318; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Ваш маршрут</h1>
+    <div id="summary">Загрузка маршрута…</div>
+    <div id="error" class="error" hidden>Маршрут недоступен или срок его действия истёк.</div>
+  </header>
+  <div id="floors"></div>
+  <section id="instructionsSection" hidden>
+    <h2>Шаги маршрута</h2>
+    <ol id="instructions"></ol>
+  </section>
+</main>
+<script>
+  const labels = {
+    START: 'Начните движение', CONTINUE: 'Продолжайте движение',
+    TRANSITION: 'Перейдите на другой этаж', ARRIVE: 'Вы на месте'
+  };
+  const routeMarker = '/r/';
+  const markerIndex = location.pathname.lastIndexOf(routeMarker);
+  const basePath = markerIndex < 0 ? '' : location.pathname.slice(0, markerIndex);
+  const token = decodeURIComponent(location.pathname.split('/').filter(Boolean).at(-1) || '');
+  fetch(basePath + '/api/v1/public/routes/' + encodeURIComponent(token), {headers: {'Accept': 'application/json'}})
+    .then(response => { if (!response.ok) throw new Error('unavailable'); return response.json(); })
+    .then(route => {
+      document.getElementById('summary').textContent =
+        `${route.totalDistanceMeters} м · примерно ${Math.max(1, Math.ceil(route.estimatedDurationSeconds / 60))} мин`;
+      route.overlays.forEach(floor => {
+        const section = document.createElement('section');
+        const title = document.createElement('h2');
+        title.textContent = `Этаж ${floor.floorCode}`;
+        const map = document.createElement('div');
+        map.className = 'map';
+        map.style.aspectRatio = `${floor.pixelWidth} / ${floor.pixelHeight}`;
+        if (floor.mapImageUrl) {
+          const background = document.createElement('img');
+          background.src = floor.mapImageUrl;
+          background.alt = `План этажа ${floor.floorCode}`;
+          map.append(background);
+        }
+        const overlay = document.createElement('img');
+        overlay.className = 'overlay';
+        overlay.src = floor.imageUrl;
+        overlay.alt = `Маршрут на этаже ${floor.floorCode}`;
+        map.append(overlay);
+        section.append(title, map);
+        document.getElementById('floors').append(section);
+      });
+      route.instructions.forEach(instruction => {
+        const item = document.createElement('li');
+        const distance = instruction.distanceMeters == null ? '' : ` — ${instruction.distanceMeters} м`;
+        const target = instruction.targetFloorCode == null ? '' : ` → ${instruction.targetFloorCode}`;
+        item.textContent = `${labels[instruction.type] || instruction.type} · ${instruction.floorCode}${target}${distance}`;
+        document.getElementById('instructions').append(item);
+      });
+      document.getElementById('instructionsSection').hidden = false;
+    })
+    .catch(() => {
+      document.getElementById('summary').hidden = true;
+      document.getElementById('error').hidden = false;
+    });
+</script>
+</body>
+</html>

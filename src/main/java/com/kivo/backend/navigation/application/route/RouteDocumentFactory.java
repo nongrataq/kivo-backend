@@ -172,6 +172,7 @@ public class RouteDocumentFactory {
         value.floor.id(),
         value.floor.code(),
         value.floor.displayOrder(),
+        value.floor.mapImageUrl(),
         imageUrl,
         value.floor.coordinateWidth(),
         value.floor.coordinateHeight(),

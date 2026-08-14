@@ -47,6 +47,7 @@ public class CatalogNavigationReadService implements CatalogNavigationReadPort {
                     floor.getId(),
                     floor.getCode(),
                     floor.getDisplayOrder(),
+                    floor.getMapUrl(),
                     floor.getCoordinateWidth(),
                     floor.getCoordinateHeight()))
         .toList();

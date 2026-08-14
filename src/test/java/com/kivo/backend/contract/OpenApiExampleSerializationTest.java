@@ -18,8 +18,13 @@ import com.kivo.backend.navigation.api.RouteResponse;
 import com.kivo.backend.navigation.domain.model.MovementType;
 import com.kivo.backend.navigation.domain.routing.InstructionType;
 import com.kivo.backend.navigation.domain.routing.MovementProfile;
+import com.kivo.backend.sharing.api.ShareRouteResponse;
+import com.kivo.backend.sharing.api.SharedRouteInstructionResponse;
+import com.kivo.backend.sharing.api.SharedRouteOverlayResponse;
+import com.kivo.backend.sharing.api.SharedRouteResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
@@ -31,6 +36,11 @@ class OpenApiExampleSerializationTest {
   private static final UUID CATEGORY_ID = UUID.fromString("00000000-0000-0000-0000-000000000101");
   private static final UUID PLACE_ID = UUID.fromString("00000000-0000-0000-0000-000000000401");
   private static final UUID ROUTE_ID = UUID.fromString("73000000-0000-0000-0000-000000000001");
+  private static final UUID SHARE_ID = UUID.fromString("74000000-0000-0000-0000-000000000001");
+  private static final UUID MALL_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+  private static final UUID GRAPH_VERSION_ID =
+      UUID.fromString("30000000-0000-0000-0000-000000000001");
+  private static final String SHARE_TOKEN = "a".repeat(43);
 
   private final JsonMapper jsonMapper =
       JsonMapper.builder()
@@ -117,6 +127,58 @@ class OpenApiExampleSerializationTest {
     created.path("instructions").forEach(this::assertFlatObject);
     created.path("overlays").forEach(this::assertFlatObject);
     assertThat(created.toString()).doesNotContain("nodeCode", "geometry", "polylines");
+  }
+
+  @Test
+  void sharingExamplesMatchJacksonAndDoNotExposeSnapshotGeometryOrToken() {
+    Instant routeCreatedAt = Instant.parse("2026-08-10T10:00:00Z");
+    Instant expiresAt = Instant.parse("2026-08-10T12:00:00Z");
+    URI routeUrl = URI.create("https://routes.example/r/" + SHARE_TOKEN);
+    URI qrImageUrl =
+        URI.create("https://routes.example/api/v1/public/routes/" + SHARE_TOKEN + "/qr.png");
+    var share = new ShareRouteResponse(SHARE_ID, routeUrl, qrImageUrl, expiresAt);
+    var sharedRoute =
+        new SharedRouteResponse(
+            SHARE_ID,
+            ROUTE_ID,
+            MALL_ID,
+            GRAPH_VERSION_ID,
+            "demo-kiosk",
+            PLACE_ID,
+            MovementProfile.STANDARD,
+            new BigDecimal("20.00"),
+            15,
+            routeCreatedAt,
+            expiresAt,
+            List.of(
+                new SharedRouteInstructionResponse(
+                    0, InstructionType.START, "L1", null, null, null),
+                new SharedRouteInstructionResponse(
+                    1,
+                    InstructionType.CONTINUE,
+                    "L1",
+                    null,
+                    MovementType.CORRIDOR,
+                    new BigDecimal("20.00")),
+                new SharedRouteInstructionResponse(
+                    2, InstructionType.ARRIVE, "L1", null, null, null)),
+            List.of(
+                new SharedRouteOverlayResponse(
+                    "L1",
+                    10,
+                    "https://cdn.example.com/maps/demo-mall/L1.png",
+                    URI.create(
+                        "https://routes.example/api/v1/public/routes/"
+                            + SHARE_TOKEN
+                            + "/floors/L1/overlay.png"),
+                    256,
+                    256)));
+
+    assertExample("/routes/{routeId}/share", "post", "201", share);
+    JsonNode json = assertExample("/public/routes/{shareToken}", sharedRoute);
+    json.path("instructions").forEach(this::assertFlatObject);
+    json.path("overlays").forEach(this::assertFlatObject);
+    assertThat(json.toString()).doesNotContain("token", "geometry", "polylines", "markers");
   }
 
   private JsonNode assertExample(String path, Object response) {

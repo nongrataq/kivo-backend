@@ -339,6 +339,165 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /routes/{routeId}/share:
+    post:
+      operationId: shareRoute
+      summary: Создать временную мобильную ссылку и QR-код для маршрута
+      parameters:
+        - $ref: '#/components/parameters/RouteId'
+      responses:
+        '201':
+          description: Ссылка для передачи маршрута создана
+          headers:
+            Location:
+              description: Абсолютный URL мобильной страницы
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareRoute'
+              example:
+                shareId: 74000000-0000-0000-0000-000000000001
+                routeUrl: https://routes.example/r/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                qrImageUrl: https://routes.example/api/v1/public/routes/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/qr.png
+                expiresAt: '2026-08-10T12:00:00Z'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: Исходный временный маршрут не найден или истёк
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /public/routes/{shareToken}:
+    get:
+      operationId: getSharedRoute
+      summary: Получить неизменяемый snapshot переданного маршрута
+      parameters:
+        - $ref: '#/components/parameters/ShareToken'
+      responses:
+        '200':
+          description: Публичный мобильный маршрут
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedRoute'
+              example:
+                shareId: 74000000-0000-0000-0000-000000000001
+                routeId: 73000000-0000-0000-0000-000000000001
+                mallId: 00000000-0000-0000-0000-000000000001
+                graphVersionId: 30000000-0000-0000-0000-000000000001
+                kioskCode: demo-kiosk
+                placeId: 00000000-0000-0000-0000-000000000401
+                profile: STANDARD
+                totalDistanceMeters: 20.00
+                estimatedDurationSeconds: 15
+                createdAt: '2026-08-10T10:00:00Z'
+                expiresAt: '2026-08-10T12:00:00Z'
+                instructions:
+                  - sequence: 0
+                    type: START
+                    floorCode: L1
+                    targetFloorCode: null
+                    movementType: null
+                    distanceMeters: null
+                  - sequence: 1
+                    type: CONTINUE
+                    floorCode: L1
+                    targetFloorCode: null
+                    movementType: CORRIDOR
+                    distanceMeters: 20.00
+                  - sequence: 2
+                    type: ARRIVE
+                    floorCode: L1
+                    targetFloorCode: null
+                    movementType: null
+                    distanceMeters: null
+                overlays:
+                  - floorCode: L1
+                    displayOrder: 10
+                    mapImageUrl: https://cdn.example.com/maps/demo-mall/L1.png
+                    imageUrl: https://routes.example/api/v1/public/routes/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/floors/L1/overlay.png
+                    pixelWidth: 256
+                    pixelHeight: 256
+        '404':
+          description: Токен неизвестен, истёк или отозван
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /public/routes/{shareToken}/qr.png:
+    get:
+      operationId: getSharedRouteQr
+      summary: Получить QR-код, содержащий URL мобильной страницы
+      parameters:
+        - $ref: '#/components/parameters/ShareToken'
+      responses:
+        '200':
+          description: QR-код в PNG
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Токен неизвестен, истёк или отозван
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /public/routes/{shareToken}/floors/{floorCode}/overlay.png:
+    get:
+      operationId: getSharedRouteOverlay
+      summary: Получить PNG-слой этажа из сохранённого snapshot маршрута
+      parameters:
+        - $ref: '#/components/parameters/ShareToken'
+        - name: floorCode
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 32
+      responses:
+        '200':
+          description: Прозрачный PNG-слой
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: Токен или этаж маршрута не найдены
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /r/{shareToken}:
+    get:
+      operationId: getSharedRouteMobilePage
+      summary: Открыть минимальную адаптивную страницу маршрута
+      servers:
+        - url: /
+      parameters:
+        - $ref: '#/components/parameters/ShareToken'
+      responses:
+        '200':
+          description: Мобильная HTML-страница
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: Токен неизвестен, истёк или отозван
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
   parameters:
     MallCode:
@@ -366,6 +525,15 @@ components:
       schema:
         type: string
         format: uuid
+    ShareToken:
+      name: shareToken
+      in: path
+      required: true
+      description: Высокоэнтропийный непрозрачный токен из QR-ссылки
+      schema:
+        type: string
+        minLength: 32
+        maxLength: 128
   responses:
     ValidationError:
       description: Ошибка валидации параметров
@@ -586,6 +754,105 @@ components:
         imageUrl:
           type: string
           format: uri-reference
+        pixelWidth:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 2048
+        pixelHeight:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 2048
+    ShareRoute:
+      type: object
+      required: [shareId, routeUrl, qrImageUrl, expiresAt]
+      properties:
+        shareId:
+          type: string
+          format: uuid
+        routeUrl:
+          type: string
+          format: uri
+        qrImageUrl:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+    SharedRoute:
+      type: object
+      required:
+        - shareId
+        - routeId
+        - mallId
+        - graphVersionId
+        - kioskCode
+        - placeId
+        - profile
+        - totalDistanceMeters
+        - estimatedDurationSeconds
+        - createdAt
+        - expiresAt
+        - instructions
+        - overlays
+      properties:
+        shareId:
+          type: string
+          format: uuid
+        routeId:
+          type: string
+          format: uuid
+        mallId:
+          type: string
+          format: uuid
+        graphVersionId:
+          type: string
+          format: uuid
+        kioskCode:
+          type: string
+        placeId:
+          type: string
+          format: uuid
+        profile:
+          $ref: '#/components/schemas/MovementProfile'
+        totalDistanceMeters:
+          type: number
+          minimum: 0
+          multipleOf: 0.01
+        estimatedDurationSeconds:
+          type: integer
+          format: int64
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        instructions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteInstruction'
+        overlays:
+          type: array
+          items:
+            $ref: '#/components/schemas/SharedRouteOverlay'
+    SharedRouteOverlay:
+      type: object
+      required: [floorCode, displayOrder, mapImageUrl, imageUrl, pixelWidth, pixelHeight]
+      properties:
+        floorCode:
+          type: string
+        displayOrder:
+          type: integer
+          format: int32
+        mapImageUrl:
+          type: [string, 'null']
+          format: uri-reference
+        imageUrl:
+          type: string
+          format: uri
         pixelWidth:
           type: integer
           format: int32

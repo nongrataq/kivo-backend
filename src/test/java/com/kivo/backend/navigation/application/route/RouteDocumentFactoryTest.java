@@ -48,7 +48,9 @@ class RouteDocumentFactoryTest {
         factory.create(
             new RouteCreateCommand("kiosk", PLACE_ID, MovementProfile.STANDARD),
             new PlannedRoute(result, snapshot),
-            List.of(new RouteFloorReadModel(FLOOR_ID, "L 1", 10, 10000, 5000)),
+            List.of(
+                new RouteFloorReadModel(
+                    FLOOR_ID, "L 1", 10, "https://maps.example/L1.png", 10000, 5000)),
             Instant.parse("2026-08-10T10:00:00Z"));
 
     assertThat(route.totalDistanceMeters()).isEqualByComparingTo("10.00");
@@ -59,6 +61,7 @@ class RouteDocumentFactoryTest {
         .satisfies(
             overlay -> {
               assertThat(overlay.floorCode()).isEqualTo("L 1");
+              assertThat(overlay.mapImageUrl()).isEqualTo("https://maps.example/L1.png");
               assertThat(overlay.imageUrl()).contains("L%201/overlay.png");
               assertThat(overlay.pixelWidth()).isEqualTo(2048);
               assertThat(overlay.pixelHeight()).isEqualTo(1024);
@@ -84,7 +87,7 @@ class RouteDocumentFactoryTest {
         factory.create(
             new RouteCreateCommand("kiosk", PLACE_ID, MovementProfile.ACCESSIBLE),
             new PlannedRoute(result, snapshot),
-            List.of(new RouteFloorReadModel(FLOOR_ID, "L1", 10, 10000, 10000)),
+            List.of(new RouteFloorReadModel(FLOOR_ID, "L1", 10, null, 10000, 10000)),
             Instant.EPOCH);
 
     assertThat(route.overlays().getFirst().markers())
@@ -132,8 +135,8 @@ class RouteDocumentFactoryTest {
             new RouteCreateCommand("kiosk", PLACE_ID, MovementProfile.ACCESSIBLE),
             new PlannedRoute(result, snapshot),
             List.of(
-                new RouteFloorReadModel(FLOOR_ID, "L1", 10, 10000, 10000),
-                new RouteFloorReadModel(FLOOR_TWO_ID, "L2", 20, 10000, 10000)),
+                new RouteFloorReadModel(FLOOR_ID, "L1", 10, null, 10000, 10000),
+                new RouteFloorReadModel(FLOOR_TWO_ID, "L2", 20, null, 10000, 10000)),
             Instant.EPOCH);
 
     assertThat(route.overlays())
