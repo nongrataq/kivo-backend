@@ -21,6 +21,7 @@ description = "Indoor navigation backend for large retail spaces"
 val mapstructVersion = "1.6.3"
 val archUnitVersion = "1.4.2"
 val testcontainersVersion = "2.0.5"
+val zxingVersion = "3.5.4"
 
 java {
 	toolchain {
@@ -41,6 +42,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.flywaydb:flyway-database-postgresql")
 	implementation("com.github.ben-manes.caffeine:caffeine")
+	implementation("com.google.zxing:core:$zxingVersion")
 	implementation("org.mapstruct:mapstruct:$mapstructVersion")
 	annotationProcessor("org.projectlombok:lombok")
 	annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
