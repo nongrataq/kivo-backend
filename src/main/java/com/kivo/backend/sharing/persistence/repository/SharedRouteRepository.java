@@ -10,4 +10,6 @@ public interface SharedRouteRepository extends JpaRepository<SharedRoute, UUID> 
 
   Optional<SharedRoute> findByTokenHashAndRevokedAtIsNullAndExpiresAtAfter(
       String tokenHash, Instant now);
+
+  Optional<SharedRoute> findByIdAndRevokedAtIsNullAndExpiresAtAfter(UUID id, Instant now);
 }

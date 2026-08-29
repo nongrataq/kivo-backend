@@ -90,6 +90,20 @@ class ArchitectureTest {
         .dependOnClassesThat()
         .resideInAPackage("..sharing.persistence.repository..")
         .check(CLASSES);
+    noClasses()
+        .that()
+        .resideOutsideOfPackage("..events..")
+        .should()
+        .dependOnClassesThat()
+        .resideInAPackage("..events.persistence.repository..")
+        .check(CLASSES);
+    noClasses()
+        .that()
+        .resideOutsideOfPackage("..feedback..")
+        .should()
+        .dependOnClassesThat()
+        .resideInAPackage("..feedback.persistence.repository..")
+        .check(CLASSES);
   }
 
   @Test
