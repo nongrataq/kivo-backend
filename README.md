@@ -50,8 +50,9 @@ Flyway. Поэтому для полного quality gate должен быть 
 ## Локальная демонстрация navigation-core MVP
 
 Профиль `demo` использует отдельную схему PostgreSQL `kivo_demo`, применяет основные миграции и
-добавляет демонстрационный ТЦ, этаж, киоск, два места и опубликованный навигационный граф. Эти
-данные не попадают в production-профиль.
+добавляет демонстрационный план L1 ЦУМ, один киоск, 16 публичных мест и опубликованный
+навигационный граф. Эти данные не попадают в production-профиль. Топология и метрика требуют
+проверки на месте; источник и допущения описаны в [data-track L1](docs/demo/tsum-l1-data.md).
 
 ```powershell
 docker compose up -d postgres
@@ -61,12 +62,12 @@ docker compose up -d postgres
 После запуска можно пройти основной сценарий:
 
 ```powershell
-$bootstrap = Invoke-RestMethod 'http://localhost:8080/api/v1/kiosks/demo-kiosk/bootstrap?lang=ru'
-$places = Invoke-RestMethod 'http://localhost:8080/api/v1/malls/demo-mall/places?lang=ru'
+$bootstrap = Invoke-RestMethod 'http://localhost:8080/api/v1/kiosks/tsum-l1-main-kiosk/bootstrap?lang=ru'
+$places = Invoke-RestMethod 'http://localhost:8080/api/v1/malls/tsum-demo/places?lang=ru'
 $route = Invoke-RestMethod -Method Post `
   -Uri 'http://localhost:8080/api/v1/routes' `
   -ContentType 'application/json' `
-  -Body '{"kioskCode":"demo-kiosk","placeId":"00000000-0000-0000-0000-000000000401"}'
+  -Body '{"kioskCode":"tsum-l1-main-kiosk","placeId":"00000000-0000-0000-0000-000000000401"}'
 Invoke-WebRequest `
   -Uri ("http://localhost:8080{0}" -f $route.overlays[0].imageUrl) `
   -OutFile 'route-overlay.png'
@@ -80,7 +81,7 @@ $publicRoute = Invoke-RestMethod `
   ("http://localhost:8080/api/v1/public/routes/{0}" -f $shareToken)
 ```
 
-Базовый план этажа доступен по адресу `http://localhost:8080/demo/maps/L1.svg`. Профиль создаёт
+Базовый план этажа доступен по адресу `http://localhost:8080/demo/maps/tsum-l1.png`. Профиль создаёт
 схему автоматически; для другой demo-БД задайте `DEMO_DB_URL`, `DEMO_DB_USERNAME` и
 `DEMO_DB_PASSWORD`.
 
