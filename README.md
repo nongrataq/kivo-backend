@@ -90,6 +90,7 @@ $publicRoute = Invoke-RestMethod `
 GET /api/v1/kiosks/{kioskCode}/bootstrap?lang=
 GET /api/v1/malls/{mallCode}/categories?lang=
 GET /api/v1/malls/{mallCode}/places?q=&categoryId=&lang=
+GET /api/v1/malls/{mallCode}/events/today?lang=
 GET /api/v1/places/{placeId}?lang=
 POST /api/v1/routes
 GET /api/v1/routes/{routeId}
@@ -99,10 +100,14 @@ GET /api/v1/public/routes/{shareToken}
 GET /api/v1/public/routes/{shareToken}/qr.png
 GET /api/v1/public/routes/{shareToken}/floors/{floorCode}/overlay.png
 GET /r/{shareToken}
+POST /api/v1/feedback
 ```
 
 `lang` необязателен: без него используется язык ТЦ по умолчанию. Ответы не содержат внутренних
 navigation node codes; bootstrap возвращает только плоские элементы массивов языков и этажей.
+События отбираются по локальным суткам и часовому поясу ТЦ, только в активном окне публикации и
+только для маршрутизируемых мест. Feedback принимает оценку `1..5` и ровно один непрозрачный
+`routeId` или `shareId`; текст и персональные данные не принимаются и не сохраняются.
 
 ## Документация
 

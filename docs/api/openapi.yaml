@@ -133,6 +133,42 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /malls/{mallCode}/events/today:
+    get:
+      operationId: getTodayEvents
+      summary: Получить опубликованные события локальных суток торгового центра
+      parameters:
+        - $ref: '#/components/parameters/MallCode'
+        - $ref: '#/components/parameters/Language'
+      responses:
+        '200':
+          description: Не более 50 маршрутизируемых событий в хронологическом порядке
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 50
+                items:
+                  $ref: '#/components/schemas/Event'
+              example:
+                - id: 75000000-0000-0000-0000-000000000001
+                  code: tasting
+                  title: Дегустация
+                  description: Новинки фермерских продуктов
+                  startsAt: '2026-08-10T10:00:00Z'
+                  endsAt: '2026-08-10T11:00:00Z'
+                  placeId: 00000000-0000-0000-0000-000000000401
+                  placeCode: grocery
+                  placeName: Продуктовый магазин
+                  floorCode: L1
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: Торговый центр не найден
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /places/{placeId}:
     get:
       operationId: getPlace
@@ -498,6 +534,31 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /feedback:
+    post:
+      operationId: createFeedback
+      summary: Сохранить анонимную оценку маршрута
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFeedback'
+            example:
+              routeId: 73000000-0000-0000-0000-000000000001
+              shareId: null
+              rating: 5
+      responses:
+        '204':
+          description: Оценка сохранена; тело ответа отсутствует
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: Контекст маршрута не найден, истёк или не согласован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
   parameters:
     MallCode:
@@ -651,6 +712,43 @@ components:
         displayOrder:
           type: integer
           format: int32
+    Event:
+      type: object
+      required:
+        - id
+        - code
+        - title
+        - startsAt
+        - endsAt
+        - placeId
+        - placeCode
+        - placeName
+        - floorCode
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        title:
+          type: string
+        description:
+          type: [string, 'null']
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        placeId:
+          type: string
+          format: uuid
+        placeCode:
+          type: string
+        placeName:
+          type: string
+        floorCode:
+          type: string
     CreateRoute:
       type: object
       required: [kioskCode, placeId]
@@ -863,6 +961,36 @@ components:
           format: int32
           minimum: 1
           maximum: 2048
+    CreateFeedback:
+      type: object
+      additionalProperties: false
+      required: [rating]
+      oneOf:
+        - required: [routeId]
+          properties:
+            routeId:
+              type: string
+              format: uuid
+            shareId:
+              type: 'null'
+        - required: [shareId]
+          properties:
+            routeId:
+              type: 'null'
+            shareId:
+              type: string
+              format: uuid
+      properties:
+        routeId:
+          type: [string, 'null']
+          format: uuid
+        shareId:
+          type: [string, 'null']
+          format: uuid
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
     Problem:
       type: object
       required: [title, status, code]
