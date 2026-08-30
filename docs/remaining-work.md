@@ -16,15 +16,16 @@
 - [x] удалённый job `quality` прошёл formatting, clean-DB и все тесты;
 - [x] Linux-specific отказ `container-smoke` локализован: secret-файлы mode `0600` не читались
   non-root процессом `10001:10001`; smoke и deployment-инструкция исправлены;
-- [!] следующий удалённый run должен подтвердить `container-smoke` и публикацию GHCR.
+- [x] [GitHub Actions run 33303776805](https://github.com/nongrataq/kivo-backend/actions/runs/33303776805)
+  подтвердил `quality`, Linux `container-smoke` и публикацию GHCR для `7fa6d3e`.
 
 ## Приоритет 0 — вернуть зелёный main
 
 - [x] оформить согласованный прямой commit в `main`;
 - [x] проверить в diff изменение `gradlew` только `100644 → 100755`;
-- [ ] дождаться зелёных jobs `quality`, `container-smoke` и `publish` после исправления Linux secrets;
-- [ ] проверить, что образ появился в GHCR с ожидаемыми `sha-*` и `edge` tags;
-- [ ] сохранить ссылку на зелёный run в release/acceptance заметках.
+- [x] дождаться зелёных jobs `quality`, `container-smoke` и `publish` после исправления Linux secrets;
+- [x] проверить публикацию образа в GHCR с тегами `sha-7fa6d3e` и `edge`;
+- [x] сохранить ссылку на зелёный run в этом acceptance-списке;
 - [ ] [+] обновить pinned GitHub Actions до Node 24-compatible major versions, включая
   `actions/setup-java@v5`; текущие версии пока запускаются через forced Node 24 и дают warning.
 
