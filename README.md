@@ -127,6 +127,11 @@ navigation node codes; bootstrap возвращает только плоски�
 Production-настройки, health/metrics, резервное копирование, восстановление и rollback описаны в
 [`docs/operations.md`](docs/operations.md).
 
+Практический handoff по экранам, REST Interface Assets, remote overlay, ошибкам и idle/reset для
+Intuiface находится в [`docs/intuiface-integration.md`](docs/intuiface-integration.md). Актуальный
+остаток backend, staging и acceptance работ собран в
+[`docs/remaining-work.md`](docs/remaining-work.md).
+
 ## Работа с Git
 
 - новые возможности: `feature/<название>`;
