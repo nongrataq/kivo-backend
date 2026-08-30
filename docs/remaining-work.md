@@ -31,6 +31,13 @@
 
 ## Приоритет 1 — интеграция и приёмка
 
+Полное распределение задач, формат передачи реальных карт и отдельные Definition of Done для
+Ариадны, Егора и backend находятся в
+[`docs/role-handoff-and-real-map-onboarding.md`](role-handoff-and-real-map-onboarding.md).
+
+- [ ] [!] реализовать production importer/validator реальных catalog/map/graph данных;
+- [ ] добавить dry-run, audit/checksum, immutable version creation и пример import package;
+
 - [ ] выполнить Intuiface spike по инструкции
   [`docs/intuiface-integration.md`](intuiface-integration.md);
 - [ ] подтвердить в используемых Composer/Player обработку ответов `201` и `204`;
@@ -57,6 +64,8 @@
 - [!] команда контента: итоговые языки, переводы, места и события;
 - [!] Егор: версия Composer, тип Player, целевая ОС и доступные license features;
 - [!] DevOps: hosting, domain, TLS, monitoring, production PostgreSQL и secret storage.
+- [!] backend: production importer реальных данных; текущий admin endpoint только публикует уже
+  загруженную graph version.
 
 Демо L1 нельзя использовать как as-built схему. Его координаты, метрика, якоря мест и доступность
 должны быть подтверждены на площадке; подробности находятся в

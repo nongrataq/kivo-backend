@@ -132,6 +132,11 @@ Intuiface находится в [`docs/intuiface-integration.md`](docs/intuiface
 остаток backend, staging и acceptance работ собран в
 [`docs/remaining-work.md`](docs/remaining-work.md).
 
+Подробное распределение ответственности между Ариадной, Егором, backend и DevOps, включая формат
+передачи исходников, процесс разметки реальных этажей, требования к importer и критерии готовности,
+находится в
+[`docs/role-handoff-and-real-map-onboarding.md`](docs/role-handoff-and-real-map-onboarding.md).
+
 ## Работа с Git
 
 - новые возможности: `feature/<название>`;
