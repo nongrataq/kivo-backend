@@ -2,7 +2,10 @@ openapi: 3.1.0
 info:
   title: Kivo Backend API
   version: 1.0.0
-  description: Стабильный JSON API системы навигации Kivo для Intuiface.
+  description: >-
+    Стабильный JSON API системы навигации Kivo для Intuiface. Клиент может передать
+    X-Correlation-ID (8–128 безопасных ASCII-символов); сервер всегда возвращает принятый
+    или сгенерированный идентификатор в одноимённом response header.
 servers:
   - url: /api/v1
 paths:
@@ -133,6 +136,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /places/{placeId}:
     get:
       operationId: getPlace
@@ -250,6 +255,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /routes/{routeId}:
     get:
       operationId: getRoute
@@ -371,6 +378,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /public/routes/{shareToken}:
     get:
       operationId: getSharedRoute
@@ -477,6 +486,62 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /admin/malls/{mallCode}/navigation/graphs/{versionId}/publish:
+    post:
+      operationId: publishNavigationGraph
+      summary: Атомарно опубликовать проверенную версию навигационного графа
+      description: >-
+        Только для отдельного staff-устройства. Stateless HTTP Basic credentials должны
+        передаваться исключительно по HTTPS и не сохраняются в сессии.
+      security:
+        - adminBasic: []
+      parameters:
+        - $ref: '#/components/parameters/MallCode'
+        - name: versionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Граф опубликован и активный in-memory snapshot атомарно заменён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphPublication'
+              example:
+                mallCode: demo-mall
+                versionId: 30000000-0000-0000-0000-000000000001
+                versionCode: v1
+                nodeCount: 12
+                edgeCount: 18
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Отсутствуют или неверны staff credentials
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Аккаунт не имеет роли STAFF
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Торговый центр или версия графа не найдены
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Кандидат не прошёл валидацию графа
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /r/{shareToken}:
     get:
       operationId: getSharedRouteMobilePage
@@ -499,6 +564,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
 components:
+  securitySchemes:
+    adminBasic:
+      type: http
+      scheme: basic
+      description: Staff credentials из deployment secret storage; только поверх HTTPS.
   parameters:
     MallCode:
       name: mallCode
@@ -541,7 +611,44 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+    RateLimitExceeded:
+      description: Превышен лимит запросов для клиента и policy
+      headers:
+        Retry-After:
+          description: Секунды до открытия текущего окна
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Rate limit exceeded
+            status: 429
+            detail: Too many requests; retry after 60 second(s)
+            code: RATE_LIMIT_EXCEEDED
+            correlationId: 0f60ab4e-9c8d-44da-8eb5-0e7d986ac79a
   schemas:
+    GraphPublication:
+      type: object
+      required: [mallCode, versionId, versionCode, nodeCount, edgeCount]
+      properties:
+        mallCode:
+          type: string
+        versionId:
+          type: string
+          format: uuid
+        versionCode:
+          type: string
+        nodeCount:
+          type: integer
+          format: int32
+          minimum: 0
+        edgeCount:
+          type: integer
+          format: int32
+          minimum: 0
     KioskBootstrap:
       type: object
       required:
@@ -579,6 +686,8 @@ components:
       required: [code, displayLabel, displayOrder]
       properties:
         code:
+          type: string
+        correlationId:
           type: string
         displayLabel:
           type: string

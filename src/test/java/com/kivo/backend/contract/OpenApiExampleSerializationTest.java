@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.kivo.backend.admin.api.GraphPublicationResponse;
 import com.kivo.backend.catalog.application.query.CategoryResponse;
 import com.kivo.backend.catalog.application.query.PlaceResponse;
 import com.kivo.backend.kiosks.application.query.KioskBootstrapResponse;
@@ -127,6 +128,63 @@ class OpenApiExampleSerializationTest {
     created.path("instructions").forEach(this::assertFlatObject);
     created.path("overlays").forEach(this::assertFlatObject);
     assertThat(created.toString()).doesNotContain("nodeCode", "geometry", "polylines");
+  }
+
+  @Test
+  void adminPublicationExampleMatchesJacksonAndDeclaresBasicSecurity() {
+    var response = new GraphPublicationResponse("demo-mall", GRAPH_VERSION_ID, "v1", 12, 18);
+
+    assertExample(
+        "/admin/malls/{mallCode}/navigation/graphs/{versionId}/publish", "post", "200", response);
+
+    JsonNode operation =
+        openApi
+            .path("paths")
+            .path("/admin/malls/{mallCode}/navigation/graphs/{versionId}/publish")
+            .path("post");
+    assertThat(operation.path("security").get(0).has("adminBasic")).isTrue();
+    assertThat(
+            openApi
+                .path("components")
+                .path("securitySchemes")
+                .path("adminBasic")
+                .path("scheme")
+                .asText())
+        .isEqualTo("basic");
+  }
+
+  @Test
+  void rateLimitedOperationsDeclareReusable429Contract() {
+    assertThat(
+            openApi
+                .path("paths")
+                .path("/malls/{mallCode}/places")
+                .path("get")
+                .path("responses")
+                .path("429")
+                .path("$ref")
+                .asText())
+        .isEqualTo("#/components/responses/RateLimitExceeded");
+    assertThat(
+            openApi
+                .path("paths")
+                .path("/routes")
+                .path("post")
+                .path("responses")
+                .path("429")
+                .path("$ref")
+                .asText())
+        .isEqualTo("#/components/responses/RateLimitExceeded");
+    assertThat(
+            openApi
+                .path("paths")
+                .path("/routes/{routeId}/share")
+                .path("post")
+                .path("responses")
+                .path("429")
+                .path("$ref")
+                .asText())
+        .isEqualTo("#/components/responses/RateLimitExceeded");
   }
 
   @Test
