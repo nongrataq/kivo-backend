@@ -108,4 +108,23 @@ public interface PlaceRepository extends JpaRepository<Place, UUID> {
         and category.active = true
       """)
   Optional<Place> findActiveWithDetailsById(@Param("placeId") UUID placeId);
+
+  @Query(
+      """
+      select distinct place
+      from Place place
+      join fetch place.mall mall
+      join fetch place.floor floor
+      join fetch place.category category
+      left join fetch place.translations translation
+      where mall.id = :mallId
+        and mall.active = true
+        and floor.active = true
+        and category.active = true
+        and place.active = true
+        and place.navigationNodeCode is not null
+        and place.navigationNodeCode <> ''
+      order by place.displayOrder, place.code
+      """)
+  List<Place> findActiveRoutableWithDetailsByMallId(@Param("mallId") UUID mallId);
 }
