@@ -46,7 +46,9 @@ if [[ -z "${KIVO_DB_PASSWORD_FILE:-}" ]]; then
       "$(tr -d '-' </proc/sys/kernel/random/uuid)" \
       "$(tr -d '-' </proc/sys/kernel/random/uuid)" >"${secret_file}"
   fi
-  chmod 0600 "${secret_file}"
+  # Compose mounts file secrets with their host permissions. The private mktemp
+  # directory remains 0700, while app UID 10001 needs read access to this file.
+  chmod 0644 "${secret_file}"
   KIVO_DB_PASSWORD_FILE="$(compose_path "${secret_file}")"
   export KIVO_DB_PASSWORD_FILE
 fi
@@ -55,7 +57,7 @@ if [[ -z "${KIVO_ADMIN_PASSWORD_HASH_FILE:-}" ]]; then
   ensure_secret_directory
   admin_hash_file="${secret_directory}/kivo_admin_password_hash"
   printf '%s\n' '$2a$10$jSFJWQ5.f1dUERLQRaGrAeV4lUa.Ki18LHtMLIrF2CQ/9F7nppvim' >"${admin_hash_file}"
-  chmod 0600 "${admin_hash_file}"
+  chmod 0644 "${admin_hash_file}"
   KIVO_ADMIN_PASSWORD_HASH_FILE="$(compose_path "${admin_hash_file}")"
   export KIVO_ADMIN_PASSWORD_HASH_FILE
 fi

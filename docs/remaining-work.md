@@ -1,6 +1,6 @@
 # Оставшиеся работы Kivo Backend
 
-Актуально на 30 августа 2026 года после merge PR #8 (`8f6ef1e`) и локального финального прогона.
+Актуально на 30 августа 2026 года после merge PR #8 (`8f6ef1e`) и финализации `main` (`b481adf`).
 Подробный исторический план остаётся в
 [`docs/plans/20260809-kivo-backend.md`](plans/20260809-kivo-backend.md).
 
@@ -12,17 +12,21 @@
 - [x] воспроизводимый non-root image и production-like Compose подготовлены;
 - [x] GitHub Actions содержит formatting, clean-DB, full-test, container-smoke и GHCR publish jobs;
 - [x] локально 30 августа 2026 года прошли Spotless, clean-DB, 152 теста, Docker build и HTTPS smoke;
-- [!] последний удалённый workflow упал до тестов из-за mode `100644` у `gradlew`;
-- [x] локальный Git index исправлен на mode `100755`, содержимое wrapper не менялось;
-- [!] исправление и документация ещё должны пройти commit/push и новый GitHub Actions run.
+- [x] `gradlew` исправлен с mode `100644` на `100755`, содержимое wrapper не менялось;
+- [x] удалённый job `quality` прошёл formatting, clean-DB и все тесты;
+- [x] Linux-specific отказ `container-smoke` локализован: secret-файлы mode `0600` не читались
+  non-root процессом `10001:10001`; smoke и deployment-инструкция исправлены;
+- [!] следующий удалённый run должен подтвердить `container-smoke` и публикацию GHCR.
 
 ## Приоритет 0 — вернуть зелёный main
 
-- [ ] оформить текущие изменения через `fix/*`/pull request либо согласованный прямой commit;
-- [ ] проверить в diff изменение `gradlew` только `100644 → 100755`;
-- [ ] запушить изменение и дождаться зелёных jobs `quality`, `container-smoke` и `publish`;
+- [x] оформить согласованный прямой commit в `main`;
+- [x] проверить в diff изменение `gradlew` только `100644 → 100755`;
+- [ ] дождаться зелёных jobs `quality`, `container-smoke` и `publish` после исправления Linux secrets;
 - [ ] проверить, что образ появился в GHCR с ожидаемыми `sha-*` и `edge` tags;
 - [ ] сохранить ссылку на зелёный run в release/acceptance заметках.
+- [ ] [+] обновить pinned GitHub Actions до Node 24-compatible major versions, включая
+  `actions/setup-java@v5`; текущие версии пока запускаются через forced Node 24 и дают warning.
 
 ## Приоритет 1 — интеграция и приёмка
 
