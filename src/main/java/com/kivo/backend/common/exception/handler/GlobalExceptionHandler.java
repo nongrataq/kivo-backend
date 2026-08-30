@@ -11,6 +11,7 @@ import static com.kivo.backend.common.exception.message.ExceptionKeys.VALIDATION
 import static com.kivo.backend.common.exception.message.ExceptionKeys.VALIDATION_TYPE_MISMATCH;
 
 import com.kivo.backend.common.exception.service.ServiceException;
+import com.kivo.backend.common.web.CorrelationIdFilter;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -59,6 +61,7 @@ public class GlobalExceptionHandler {
     ProblemDetail problem = ProblemDetail.forStatusAndDetail(exception.getHttpStatus(), detail);
     problem.setTitle(titleFor(exception.getHttpStatus(), locale));
     problem.setProperty("code", exception.getExceptionCode());
+    addCorrelationId(problem);
     if (exception.getExceptionData() != null) {
       problem.setProperty("data", exception.getExceptionData());
     }
@@ -134,6 +137,7 @@ public class GlobalExceptionHandler {
     problem.setTitle(
         exceptionsMessageSource.getMessage(TITLE_INTERNAL, null, TITLE_INTERNAL, locale));
     problem.setProperty("code", "INTERNAL_ERROR");
+    addCorrelationId(problem);
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problem);
   }
 
@@ -143,6 +147,7 @@ public class GlobalExceptionHandler {
     problem.setTitle(
         exceptionsMessageSource.getMessage(TITLE_VALIDATION, null, TITLE_VALIDATION, locale));
     problem.setProperty("code", "VALIDATION_ERROR");
+    addCorrelationId(problem);
     problem.setProperty("errors", errors);
     return ResponseEntity.badRequest().body(problem);
   }
@@ -172,5 +177,12 @@ public class GlobalExceptionHandler {
       return message.substring(1, message.length() - 1);
     }
     return message;
+  }
+
+  private void addCorrelationId(ProblemDetail problem) {
+    String correlationId = MDC.get(CorrelationIdFilter.MDC_KEY);
+    if (correlationId != null) {
+      problem.setProperty("correlationId", correlationId);
+    }
   }
 }

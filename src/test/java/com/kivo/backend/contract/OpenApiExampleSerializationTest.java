@@ -7,8 +7,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.kivo.backend.admin.api.GraphPublicationResponse;
 import com.kivo.backend.catalog.application.query.CategoryResponse;
 import com.kivo.backend.catalog.application.query.PlaceResponse;
+import com.kivo.backend.events.application.EventResponse;
+import com.kivo.backend.feedback.api.CreateFeedbackRequest;
 import com.kivo.backend.kiosks.application.query.KioskBootstrapResponse;
 import com.kivo.backend.kiosks.application.query.KioskBootstrapResponse.FloorResponse;
 import com.kivo.backend.kiosks.application.query.KioskBootstrapResponse.LanguageResponse;
@@ -37,6 +40,7 @@ class OpenApiExampleSerializationTest {
   private static final UUID PLACE_ID = UUID.fromString("00000000-0000-0000-0000-000000000401");
   private static final UUID ROUTE_ID = UUID.fromString("73000000-0000-0000-0000-000000000001");
   private static final UUID SHARE_ID = UUID.fromString("74000000-0000-0000-0000-000000000001");
+  private static final UUID EVENT_ID = UUID.fromString("75000000-0000-0000-0000-000000000001");
   private static final UUID MALL_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
   private static final UUID GRAPH_VERSION_ID =
       UUID.fromString("30000000-0000-0000-0000-000000000001");
@@ -130,6 +134,63 @@ class OpenApiExampleSerializationTest {
   }
 
   @Test
+  void adminPublicationExampleMatchesJacksonAndDeclaresBasicSecurity() {
+    var response = new GraphPublicationResponse("demo-mall", GRAPH_VERSION_ID, "v1", 12, 18);
+
+    assertExample(
+        "/admin/malls/{mallCode}/navigation/graphs/{versionId}/publish", "post", "200", response);
+
+    JsonNode operation =
+        openApi
+            .path("paths")
+            .path("/admin/malls/{mallCode}/navigation/graphs/{versionId}/publish")
+            .path("post");
+    assertThat(operation.path("security").get(0).has("adminBasic")).isTrue();
+    assertThat(
+            openApi
+                .path("components")
+                .path("securitySchemes")
+                .path("adminBasic")
+                .path("scheme")
+                .asText())
+        .isEqualTo("basic");
+  }
+
+  @Test
+  void rateLimitedOperationsDeclareReusable429Contract() {
+    assertThat(
+            openApi
+                .path("paths")
+                .path("/malls/{mallCode}/places")
+                .path("get")
+                .path("responses")
+                .path("429")
+                .path("$ref")
+                .asText())
+        .isEqualTo("#/components/responses/RateLimitExceeded");
+    assertThat(
+            openApi
+                .path("paths")
+                .path("/routes")
+                .path("post")
+                .path("responses")
+                .path("429")
+                .path("$ref")
+                .asText())
+        .isEqualTo("#/components/responses/RateLimitExceeded");
+    assertThat(
+            openApi
+                .path("paths")
+                .path("/routes/{routeId}/share")
+                .path("post")
+                .path("responses")
+                .path("429")
+                .path("$ref")
+                .asText())
+        .isEqualTo("#/components/responses/RateLimitExceeded");
+  }
+
+  @Test
   void sharingExamplesMatchJacksonAndDoNotExposeSnapshotGeometryOrToken() {
     Instant routeCreatedAt = Instant.parse("2026-08-10T10:00:00Z");
     Instant expiresAt = Instant.parse("2026-08-10T12:00:00Z");
@@ -179,6 +240,46 @@ class OpenApiExampleSerializationTest {
     json.path("instructions").forEach(this::assertFlatObject);
     json.path("overlays").forEach(this::assertFlatObject);
     assertThat(json.toString()).doesNotContain("token", "geometry", "polylines", "markers");
+  }
+
+  @Test
+  void eventAndFeedbackExamplesMatchJacksonAndRemainFlatAndAnonymous() {
+    var event =
+        new EventResponse(
+            EVENT_ID,
+            "tasting",
+            "Дегустация",
+            "Новинки фермерских продуктов",
+            Instant.parse("2026-08-10T10:00:00Z"),
+            Instant.parse("2026-08-10T11:00:00Z"),
+            PLACE_ID,
+            "grocery",
+            "Продуктовый магазин",
+            "L1");
+    JsonNode eventJson = assertExample("/malls/{mallCode}/events/today", List.of(event));
+    eventJson.forEach(this::assertFlatObject);
+
+    CreateFeedbackRequest feedback = new CreateFeedbackRequest(ROUTE_ID, null, 5);
+    JsonNode actual = jsonMapper.valueToTree(feedback);
+    JsonNode documented =
+        openApi
+            .path("paths")
+            .path("/feedback")
+            .path("post")
+            .path("requestBody")
+            .path("content")
+            .path("application/json")
+            .path("example");
+    assertThat(actual.toString()).isEqualTo(documented.toString());
+    assertThat(actual.has("comment")).isFalse();
+    assertThat(
+            openApi
+                .path("components")
+                .path("schemas")
+                .path("CreateFeedback")
+                .path("additionalProperties")
+                .asBoolean())
+        .isFalse();
   }
 
   private JsonNode assertExample(String path, Object response) {

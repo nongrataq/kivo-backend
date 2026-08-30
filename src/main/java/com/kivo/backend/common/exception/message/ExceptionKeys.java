@@ -14,6 +14,10 @@ public final class ExceptionKeys {
   public static final String SHARED_ROUTE_FLOOR_NOT_FOUND = "exception.sharedRoute.floorNotFound";
   public static final String SHARED_ROUTE_NOT_FOUND = "exception.sharedRoute.notFound";
   public static final String NAVIGATION_GRAPH_UNAVAILABLE = "exception.navigation.graphUnavailable";
+  public static final String ADMIN_GRAPH_VERSION_NOT_FOUND =
+      "exception.admin.navigation.graphVersionNotFound";
+  public static final String ADMIN_GRAPH_VALIDATION_FAILED =
+      "exception.admin.navigation.graphValidationFailed";
   public static final String TITLE_INTERNAL = "exception.title.internal";
   public static final String TITLE_NOT_FOUND = "exception.title.notFound";
   public static final String TITLE_UNAVAILABLE = "exception.title.unavailable";

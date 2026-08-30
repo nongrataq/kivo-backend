@@ -32,15 +32,21 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      SPRING_PROFILES_ACTIVE: production
+      SPRING_PROFILES_ACTIVE: prod
       SPRING_CONFIG_IMPORT: optional:configtree:/run/secrets/
       DB_URL: jdbc:postgresql://postgres:5432/${KIVO_DB_NAME:-kivo}
       DB_USERNAME: ${KIVO_DB_USERNAME:-kivo}
+      KIVO_ADMIN_USERNAME: ${KIVO_ADMIN_USERNAME:?Set KIVO_ADMIN_USERNAME}
+      KIVO_CORS_ALLOWED_ORIGINS: ${KIVO_CORS_ALLOWED_ORIGINS:?Set KIVO_CORS_ALLOWED_ORIGINS}
+      KIVO_TRUSTED_PROXY_REGEX: '${KIVO_TRUSTED_PROXY_REGEX:-127\.0\.0\.1|::1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}}'
+      KIVO_READINESS_NAVIGATION_MINIMUM_ACTIVE_GRAPHS: ${KIVO_MINIMUM_ACTIVE_GRAPHS:-1}
       PUBLIC_BASE_URL: ${KIVO_PUBLIC_BASE_URL:?Set KIVO_PUBLIC_BASE_URL to the public HTTPS origin}
       JAVA_TOOL_OPTIONS: ${KIVO_JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError}
     secrets:
       - source: kivo_db_password
         target: spring.datasource.password
+      - source: kivo_admin_password_hash
+        target: kivo.security.admin.password-hash
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,6 +76,8 @@ services:
 secrets:
   kivo_db_password:
     file: ${KIVO_DB_PASSWORD_FILE:?Set KIVO_DB_PASSWORD_FILE to a runtime-provided secret file}
+  kivo_admin_password_hash:
+    file: ${KIVO_ADMIN_PASSWORD_HASH_FILE:?Set KIVO_ADMIN_PASSWORD_HASH_FILE to a BCrypt secret file}
 
 networks:
   edge:

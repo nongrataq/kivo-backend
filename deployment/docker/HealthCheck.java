@@ -13,7 +13,8 @@ public final class HealthCheck {
   public static void main(String[] args) throws Exception {
     String port = System.getenv().getOrDefault("SERVER_PORT", "8080");
     HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create("http://127.0.0.1:" + port + "/actuator/health/readiness"))
+        .uri(URI.create("http://127.0.0.1:" + port + "/actuator/health/liveness"))
+        .header("X-Forwarded-Proto", "https")
         .timeout(TIMEOUT)
         .GET()
         .build();
@@ -22,7 +23,7 @@ public final class HealthCheck {
       HttpResponse<Void> response =
           client.send(request, HttpResponse.BodyHandlers.discarding());
       if (response.statusCode() != 200) {
-        throw new IllegalStateException("Readiness endpoint returned HTTP " + response.statusCode());
+        throw new IllegalStateException("Liveness endpoint returned HTTP " + response.statusCode());
       }
     }
   }

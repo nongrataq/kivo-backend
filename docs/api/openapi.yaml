@@ -2,7 +2,10 @@ openapi: 3.1.0
 info:
   title: Kivo Backend API
   version: 1.0.0
-  description: Стабильный JSON API системы навигации Kivo для Intuiface.
+  description: >-
+    Стабильный JSON API системы навигации Kivo для Intuiface. Клиент может передать
+    X-Correlation-ID (8–128 безопасных ASCII-символов); сервер всегда возвращает принятый
+    или сгенерированный идентификатор в одноимённом response header.
 servers:
   - url: /api/v1
 paths:
@@ -133,6 +136,44 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+  /malls/{mallCode}/events/today:
+    get:
+      operationId: getTodayEvents
+      summary: Получить опубликованные события локальных суток торгового центра
+      parameters:
+        - $ref: '#/components/parameters/MallCode'
+        - $ref: '#/components/parameters/Language'
+      responses:
+        '200':
+          description: Не более 50 маршрутизируемых событий в хронологическом порядке
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 50
+                items:
+                  $ref: '#/components/schemas/Event'
+              example:
+                - id: 75000000-0000-0000-0000-000000000001
+                  code: tasting
+                  title: Дегустация
+                  description: Новинки фермерских продуктов
+                  startsAt: '2026-08-10T10:00:00Z'
+                  endsAt: '2026-08-10T11:00:00Z'
+                  placeId: 00000000-0000-0000-0000-000000000401
+                  placeCode: grocery
+                  placeName: Продуктовый магазин
+                  floorCode: L1
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: Торговый центр не найден
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /places/{placeId}:
     get:
       operationId: getPlace
@@ -250,6 +291,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /routes/{routeId}:
     get:
       operationId: getRoute
@@ -371,6 +414,8 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
   /public/routes/{shareToken}:
     get:
       operationId: getSharedRoute
@@ -477,6 +522,62 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /admin/malls/{mallCode}/navigation/graphs/{versionId}/publish:
+    post:
+      operationId: publishNavigationGraph
+      summary: Атомарно опубликовать проверенную версию навигационного графа
+      description: >-
+        Только для отдельного staff-устройства. Stateless HTTP Basic credentials должны
+        передаваться исключительно по HTTPS и не сохраняются в сессии.
+      security:
+        - adminBasic: []
+      parameters:
+        - $ref: '#/components/parameters/MallCode'
+        - name: versionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Граф опубликован и активный in-memory snapshot атомарно заменён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphPublication'
+              example:
+                mallCode: demo-mall
+                versionId: 30000000-0000-0000-0000-000000000001
+                versionCode: v1
+                nodeCount: 12
+                edgeCount: 18
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          description: Отсутствуют или неверны staff credentials
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '403':
+          description: Аккаунт не имеет роли STAFF
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Торговый центр или версия графа не найдены
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Кандидат не прошёл валидацию графа
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /r/{shareToken}:
     get:
       operationId: getSharedRouteMobilePage
@@ -498,7 +599,37 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /feedback:
+    post:
+      operationId: createFeedback
+      summary: Сохранить анонимную оценку маршрута
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFeedback'
+            example:
+              routeId: 73000000-0000-0000-0000-000000000001
+              shareId: null
+              rating: 5
+      responses:
+        '204':
+          description: Оценка сохранена; тело ответа отсутствует
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          description: Контекст маршрута не найден, истёк или не согласован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
+  securitySchemes:
+    adminBasic:
+      type: http
+      scheme: basic
+      description: Staff credentials из deployment secret storage; только поверх HTTPS.
   parameters:
     MallCode:
       name: mallCode
@@ -541,7 +672,44 @@ components:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/Problem'
+    RateLimitExceeded:
+      description: Превышен лимит запросов для клиента и policy
+      headers:
+        Retry-After:
+          description: Секунды до открытия текущего окна
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            title: Rate limit exceeded
+            status: 429
+            detail: Too many requests; retry after 60 second(s)
+            code: RATE_LIMIT_EXCEEDED
+            correlationId: 0f60ab4e-9c8d-44da-8eb5-0e7d986ac79a
   schemas:
+    GraphPublication:
+      type: object
+      required: [mallCode, versionId, versionCode, nodeCount, edgeCount]
+      properties:
+        mallCode:
+          type: string
+        versionId:
+          type: string
+          format: uuid
+        versionCode:
+          type: string
+        nodeCount:
+          type: integer
+          format: int32
+          minimum: 0
+        edgeCount:
+          type: integer
+          format: int32
+          minimum: 0
     KioskBootstrap:
       type: object
       required:
@@ -579,6 +747,8 @@ components:
       required: [code, displayLabel, displayOrder]
       properties:
         code:
+          type: string
+        correlationId:
           type: string
         displayLabel:
           type: string
@@ -651,6 +821,43 @@ components:
         displayOrder:
           type: integer
           format: int32
+    Event:
+      type: object
+      required:
+        - id
+        - code
+        - title
+        - startsAt
+        - endsAt
+        - placeId
+        - placeCode
+        - placeName
+        - floorCode
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        title:
+          type: string
+        description:
+          type: [string, 'null']
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+        placeId:
+          type: string
+          format: uuid
+        placeCode:
+          type: string
+        placeName:
+          type: string
+        floorCode:
+          type: string
     CreateRoute:
       type: object
       required: [kioskCode, placeId]
@@ -863,6 +1070,36 @@ components:
           format: int32
           minimum: 1
           maximum: 2048
+    CreateFeedback:
+      type: object
+      additionalProperties: false
+      required: [rating]
+      oneOf:
+        - required: [routeId]
+          properties:
+            routeId:
+              type: string
+              format: uuid
+            shareId:
+              type: 'null'
+        - required: [shareId]
+          properties:
+            routeId:
+              type: 'null'
+            shareId:
+              type: string
+              format: uuid
+      properties:
+        routeId:
+          type: [string, 'null']
+          format: uuid
+        shareId:
+          type: [string, 'null']
+          format: uuid
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
     Problem:
       type: object
       required: [title, status, code]

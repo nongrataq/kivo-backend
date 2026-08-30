@@ -58,8 +58,9 @@ Flyway clean-DB проверки и container smoke test. Переменные �
 ## Локальная демонстрация navigation-core MVP
 
 Профиль `demo` использует отдельную схему PostgreSQL `kivo_demo`, применяет основные миграции и
-добавляет демонстрационный ТЦ, этаж, киоск, два места и опубликованный навигационный граф. Эти
-данные не попадают в production-профиль.
+добавляет демонстрационный план L1 ЦУМ, один киоск, 16 публичных мест и опубликованный
+навигационный граф. Эти данные не попадают в production-профиль. Топология и метрика требуют
+проверки на месте; источник и допущения описаны в [data-track L1](docs/demo/tsum-l1-data.md).
 
 ```powershell
 docker compose up -d postgres
@@ -69,12 +70,12 @@ docker compose up -d postgres
 После запуска можно пройти основной сценарий:
 
 ```powershell
-$bootstrap = Invoke-RestMethod 'http://localhost:8080/api/v1/kiosks/demo-kiosk/bootstrap?lang=ru'
-$places = Invoke-RestMethod 'http://localhost:8080/api/v1/malls/demo-mall/places?lang=ru'
+$bootstrap = Invoke-RestMethod 'http://localhost:8080/api/v1/kiosks/tsum-l1-main-kiosk/bootstrap?lang=ru'
+$places = Invoke-RestMethod 'http://localhost:8080/api/v1/malls/tsum-demo/places?lang=ru'
 $route = Invoke-RestMethod -Method Post `
   -Uri 'http://localhost:8080/api/v1/routes' `
   -ContentType 'application/json' `
-  -Body '{"kioskCode":"demo-kiosk","placeId":"00000000-0000-0000-0000-000000000401"}'
+  -Body '{"kioskCode":"tsum-l1-main-kiosk","placeId":"00000000-0000-0000-0000-000000000401"}'
 Invoke-WebRequest `
   -Uri ("http://localhost:8080{0}" -f $route.overlays[0].imageUrl) `
   -OutFile 'route-overlay.png'
@@ -88,7 +89,7 @@ $publicRoute = Invoke-RestMethod `
   ("http://localhost:8080/api/v1/public/routes/{0}" -f $shareToken)
 ```
 
-Базовый план этажа доступен по адресу `http://localhost:8080/demo/maps/L1.svg`. Профиль создаёт
+Базовый план этажа доступен по адресу `http://localhost:8080/demo/maps/tsum-l1.png`. Профиль создаёт
 схему автоматически; для другой demo-БД задайте `DEMO_DB_URL`, `DEMO_DB_USERNAME` и
 `DEMO_DB_PASSWORD`.
 
@@ -98,6 +99,7 @@ $publicRoute = Invoke-RestMethod `
 GET /api/v1/kiosks/{kioskCode}/bootstrap?lang=
 GET /api/v1/malls/{mallCode}/categories?lang=
 GET /api/v1/malls/{mallCode}/places?q=&categoryId=&lang=
+GET /api/v1/malls/{mallCode}/events/today?lang=
 GET /api/v1/places/{placeId}?lang=
 POST /api/v1/routes
 GET /api/v1/routes/{routeId}
@@ -107,16 +109,23 @@ GET /api/v1/public/routes/{shareToken}
 GET /api/v1/public/routes/{shareToken}/qr.png
 GET /api/v1/public/routes/{shareToken}/floors/{floorCode}/overlay.png
 GET /r/{shareToken}
+POST /api/v1/feedback
 ```
 
 `lang` необязателен: без него используется язык ТЦ по умолчанию. Ответы не содержат внутренних
 navigation node codes; bootstrap возвращает только плоские элементы массивов языков и этажей.
+События отбираются по локальным суткам и часовому поясу ТЦ, только в активном окне публикации и
+только для маршрутизируемых мест. Feedback принимает оценку `1..5` и ровно один непрозрачный
+`routeId` или `shareId`; текст и персональные данные не принимаются и не сохраняются.
 
 ## Документация
 
 Живой план реализации и архитектурные решения находятся в
 [`docs/plans/20260809-kivo-backend.md`](docs/plans/20260809-kivo-backend.md). План обновляется после
 каждой завершённой задачи или изменения объёма работ.
+
+Production-настройки, health/metrics, резервное копирование, восстановление и rollback описаны в
+[`docs/operations.md`](docs/operations.md).
 
 ## Работа с Git
 

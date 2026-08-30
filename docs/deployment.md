@@ -25,13 +25,22 @@ PowerShell 7:
 
 ```powershell
 $env:KIVO_IMAGE = 'kivo-backend:local'
-$secretFile = New-TemporaryFile
+$databaseSecretFile = New-TemporaryFile
+$adminHashSecretFile = New-TemporaryFile
 $databasePassword = [Convert]::ToHexString(
   [Security.Cryptography.RandomNumberGenerator]::GetBytes(32)
 ).ToLowerInvariant()
-[IO.File]::WriteAllText($secretFile.FullName, $databasePassword)
-$env:KIVO_DB_PASSWORD_FILE = $secretFile.FullName
+[IO.File]::WriteAllText($databaseSecretFile.FullName, $databasePassword)
+[IO.File]::WriteAllText(
+  $adminHashSecretFile.FullName,
+  '$2a$10$jSFJWQ5.f1dUERLQRaGrAeV4lUa.Ki18LHtMLIrF2CQ/9F7nppvim'
+)
+$env:KIVO_DB_PASSWORD_FILE = $databaseSecretFile.FullName
+$env:KIVO_ADMIN_PASSWORD_HASH_FILE = $adminHashSecretFile.FullName
+$env:KIVO_ADMIN_USERNAME = 'local-admin'
 $env:KIVO_PUBLIC_BASE_URL = 'https://localhost:8443'
+$env:KIVO_CORS_ALLOWED_ORIGINS = $env:KIVO_PUBLIC_BASE_URL
+$env:KIVO_MINIMUM_ACTIVE_GRAPHS = '0'
 $projectName = "kivo-local-$PID"
 try {
   docker compose -p $projectName -f compose.production.yaml up -d --wait
@@ -39,13 +48,15 @@ try {
     https://localhost:8443/actuator/health/readiness
 } finally {
   docker compose -p $projectName -f compose.production.yaml down -v
-  Remove-Item -LiteralPath $secretFile.FullName
+  Remove-Item -LiteralPath $databaseSecretFile.FullName
+  Remove-Item -LiteralPath $adminHashSecretFile.FullName
 }
 ```
 
-Пароль поступает в Compose только через путь `KIVO_DB_PASSWORD_FILE`, создаётся как Docker secret и
-монтируется в приложение как config tree. Не сохраняйте production-значения в `.env`, shell history
-или Git; в реальном оркестраторе материализуйте файл из его secret storage. `.env` и `.env.*`
+Пароль БД и BCrypt-хеш admin-пароля поступают в Compose только через пути к файлам, создаются как
+Docker secrets и монтируются в приложение как config tree. Известный хеш выше предназначен только
+для локального smoke (пароль `password`). Не сохраняйте production-значения в `.env`, shell history
+или Git; в реальном оркестраторе материализуйте файлы из его secret storage. `.env` и `.env.*`
 игнорируются Git.
 
 На Linux полный автоматический smoke gate можно повторить так:
@@ -55,8 +66,10 @@ docker build --pull --tag kivo-backend:smoke .
 KIVO_IMAGE=kivo-backend:smoke bash scripts/ci/container-smoke.sh
 ```
 
-Скрипт генерирует временный пароль, ждёт container healthcheck, проверяет readiness через HTTPS,
-non-root пользователя и версию `flyway_schema_history`, затем всегда удаляет контейнеры и volumes.
+Скрипт генерирует временные secrets, ждёт liveness container healthcheck, проверяет readiness через
+HTTPS, non-root пользователя и версию `flyway_schema_history`, затем всегда удаляет контейнеры и
+volumes. Для пустой smoke-БД он явно задаёт минимум активных графов `0`; production по умолчанию
+требует хотя бы один активный граф.
 
 ## Эксплуатационные переменные
 
@@ -64,15 +77,21 @@ non-root пользователя и версию `flyway_schema_history`, за�
 |---|---:|---|
 | `KIVO_IMAGE` | да | Проверенный OCI image reference, предпочтительно digest |
 | `KIVO_DB_PASSWORD_FILE` | да | Путь к runtime secret-файлу с паролем PostgreSQL |
+| `KIVO_ADMIN_PASSWORD_HASH_FILE` | да | Путь к secret-файлу с BCrypt-хешем admin-пароля |
+| `KIVO_ADMIN_USERNAME` | да | Имя staff-пользователя admin API |
+| `KIVO_CORS_ALLOWED_ORIGINS` | да | Точный список разрешённых HTTPS origins |
 | `KIVO_PUBLIC_BASE_URL` | да | Внешний HTTPS origin для мобильных/QR-ссылок |
 | `KIVO_DB_NAME` | нет | Имя БД, по умолчанию `kivo` |
 | `KIVO_DB_USERNAME` | нет | Пользователь БД, по умолчанию `kivo` |
 | `KIVO_PUBLIC_HOST` | нет | Host для локального Caddy, по умолчанию `localhost` |
 | `KIVO_HTTPS_PORT` | нет | Локальный published port, по умолчанию `8443` |
+| `KIVO_TRUSTED_PROXY_REGEX` | нет | Regex доверенной proxy-сети; default — loopback и private Docker ranges |
+| `KIVO_MINIMUM_ACTIVE_GRAPHS` | нет | Readiness-порог; production default `1`, для clean-DB smoke — `0` |
 | `KIVO_JAVA_TOOL_OPTIONS` | нет | JVM limits; по умолчанию container-aware RAM/OOM policy |
 
-Для прямого запуска приложения без Compose production-профиль требует `DB_URL`, `DB_USERNAME`,
-пароль через `DB_PASSWORD` или config tree и `PUBLIC_BASE_URL`.
+Для прямого запуска приложения без Compose профиль `prod` требует `DB_URL`, `DB_USERNAME`, пароль
+через `DB_PASSWORD` или config tree, `KIVO_ADMIN_USERNAME`, `KIVO_ADMIN_PASSWORD_HASH`,
+`KIVO_CORS_ALLOWED_ORIGINS` и `PUBLIC_BASE_URL`.
 
 ## Миграции и пустая БД
 
@@ -93,18 +112,15 @@ $env:GRADLE_USER_HOME = "$PWD/.gradle-user-home"
 
 Все тесты требуют доступный Docker daemon из-за обязательных PostgreSQL Testcontainers.
 
-## Reverse proxy и будущая security-интеграция
+## Reverse proxy и security
 
 Caddy `reverse_proxy` формирует стандартные `X-Forwarded-For`, `X-Forwarded-Proto` и
-`X-Forwarded-Host`, сохраняет исходный `Host` и не публикует app port. Security-ветка должна отдельно:
-
-1. включить доверенную обработку forwarded headers в Spring только за известным proxy;
-2. добавить HTTPS redirect/policy и CORS без дублирования TLS termination в приложении;
-3. заменить локальный `tls internal` на сертификат/ACME-конфигурацию целевого окружения;
-4. ограничить доверенные proxy ranges на уровне платформы и проверить spoofed forwarded headers.
-
-До интеграции security-ветки приложение не принимает решений авторизации на основании forwarded
-headers. Caddyfile намеренно остаётся минимальным стандартным proxy-контрактом.
+`X-Forwarded-Host`, сохраняет исходный `Host` и не публикует app port. Профиль `prod` включает HTTPS
+redirect, HSTS, CORS и admin authentication. Default trusted-proxy regex охватывает private Docker
+ranges, потому что app доступен только в закрытой backend-сети; на целевой платформе задайте
+`KIVO_TRUSTED_PROXY_REGEX` точным CIDR/regex адресов ingress. Caddy должен заменять недоверенные
+forwarded headers. Локальный `tls internal` перед production заменяется на реальный сертификат или
+ACME-конфигурацию целевого окружения.
 
 ## Публикация GHCR
 
