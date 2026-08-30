@@ -116,6 +116,9 @@ navigation node codes; bootstrap возвращает только плоски�
 [`docs/plans/20260809-kivo-backend.md`](docs/plans/20260809-kivo-backend.md). План обновляется после
 каждой завершённой задачи или изменения объёма работ.
 
+Production-настройки, health/metrics, резервное копирование, восстановление и rollback описаны в
+[`docs/operations.md`](docs/operations.md).
+
 ## Работа с Git
 
 - новые возможности: `feature/<название>`;

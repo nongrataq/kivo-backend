@@ -28,6 +28,10 @@ public class InMemoryActiveGraphRegistry implements ActiveGraphProvider {
     return find(mallId).orElseThrow(() -> new ActiveGraphNotFoundException(mallId));
   }
 
+  public int activeSnapshotCount() {
+    return (int) snapshots.values().stream().filter(reference -> reference.get() != null).count();
+  }
+
   void clear() {
     snapshots.clear();
   }
