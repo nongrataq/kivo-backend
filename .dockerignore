@@ -1,0 +1,15 @@
+**
+!.dockerignore
+!build.gradle.kts
+!settings.gradle.kts
+!gradlew
+!gradle/
+!gradle/wrapper/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+!src/
+!src/main/
+!src/main/**
+!deployment/
+!deployment/docker/
+!deployment/docker/HealthCheck.java

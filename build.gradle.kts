@@ -5,6 +5,11 @@ plugins {
 	id("com.diffplug.spotless") version "8.9.0"
 }
 
+tasks.withType<AbstractArchiveTask> {
+	isPreserveFileTimestamps = false
+	isReproducibleFileOrder = true
+}
+
 spotless {
 	java {
 		googleJavaFormat()

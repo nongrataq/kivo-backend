@@ -47,6 +47,14 @@ docker compose up -d
 Интеграционные тесты поднимают чистый PostgreSQL 17 через Testcontainers и применяют все миграции
 Flyway. Поэтому для полного quality gate должен быть запущен Docker Desktop.
 
+## Контейнер и deployment foundation
+
+Репозиторий содержит воспроизводимый multi-stage Java 25 image, production-like Compose с
+PostgreSQL и HTTPS reverse proxy, а также GitHub Actions gates для форматирования, полного suite,
+Flyway clean-DB проверки и container smoke test. Переменные окружения, локальная проверка и точки
+интеграции с будущей security-веткой описаны в
+[`docs/deployment.md`](docs/deployment.md).
+
 ## Локальная демонстрация navigation-core MVP
 
 Профиль `demo` использует отдельную схему PostgreSQL `kivo_demo`, применяет основные миграции и
